@@ -1,1 +1,21 @@
 outputs/
+
+# Local dependencies and secrets
+node_modules/
+.next/
+.vercel/
+.env*
+!.env.example
+
+# Raw source exports must stay outside GitHub
+DATA/
+data/
+*.xlsx
+*.xls
+*.csv
+*.zip
+
+# Local tooling output
+coverage/
+dist/
+*.tsbuildinfo
