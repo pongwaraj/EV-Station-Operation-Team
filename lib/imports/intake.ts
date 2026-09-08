@@ -19,6 +19,7 @@ export type PreparedRow = {
 const aliases = {
   timestamp: [
     "start time",
+    "start timestamp",
     "start_time",
     "start at",
     "start_at",
@@ -36,11 +37,11 @@ const aliases = {
     "日期",
     "时间",
   ],
-  station: ["station", "station name", "station_name", "站点", "站点名称", "充电站"],
+  station: ["station", "station name", "station_name", "ชื่อสถานีอัดประจุ", "站点", "站点名称", "充电站"],
   order: ["order no", "order_no", "order number", "order id", "order_id", "订单号"],
-  customer: ["v id", "v_id", "vid", "vehicle id", "vehicle_id", "vin", "vehicle vin", "card number user id", "rfid", "用户id", "客户id"],
-  charger: ["charger", "charger name", "charger serial", "charger sn", "charger number", "serial number", "sn", "设备序列号", "充电桩"],
-  connector: ["connector", "connector no", "connector_no", "枪口", "充电枪"],
+  customer: ["v id", "v_id", "vid", "vcard", "vehicle id", "vehicle_id", "vin", "vehicle vin", "card number user id", "rfid", "用户id", "客户id"],
+  charger: ["charger", "charger name", "charger serial", "charger sn", "charger number", "serial number", "sn", "ชื่อเครื่องอัดประจุ", "设备序列号", "充电桩"],
+  connector: ["connector", "connector no", "connector_no", "หัวชาร์จ", "枪口", "充电枪"],
   alarmCode: ["alarm code", "alarm_code", "code", "告警码", "故障码"],
   status: ["status", "alarm status", "state", "状态"],
 };
@@ -158,7 +159,12 @@ export function prepareRows(rows: RawRow[], sourceType: ImportSourceType): Prepa
     ]
       .filter(Boolean)
       .join("|");
-    const sourceRecordKey = timestamp ? sha256([sourceType, stationKey ?? "", timestampKey, detailKey || contentHash].join("|")) : null;
+    // Order lists have a stable order number. Other exports may only contain a
+    // date and customer/device fields, so keep the row fingerprint in the key
+    // to distinguish legitimate same-day repeat usage while still collapsing
+    // exact duplicates.
+    const identityKey = orderKey ? detailKey : `${detailKey}|${contentHash}`;
+    const sourceRecordKey = timestamp ? sha256([sourceType, stationKey ?? "", timestampKey, identityKey].join("|")) : null;
     const duplicateInFile = sourceRecordKey ? seen.has(sourceRecordKey) : false;
     if (sourceRecordKey) seen.add(sourceRecordKey);
 

@@ -18,7 +18,7 @@ copy .env.example .env.local
 pnpm dev
 ```
 
-The `/imports` page accepts `.xlsx`, `.xls`, and `.csv` files for charging sessions, billing exports, charger alarms, and status events.
+The `/imports` page accepts `.xlsx`, `.xls`, and `.csv` files for charging sessions, billing exports, charger alarms, and status events. The intake mapping covers the Meta Mall exports, including Thai headers such as `ชื่อสถานีอัดประจุ`, `vcard`, `หน่วยไฟฟ้า (kWh)`, and `รายได้ (บาท)`.
 
 ## Daily/monthly upload and duplicate control
 
@@ -32,7 +32,7 @@ Every upload goes through a preflight step before import:
 
 This makes it safe to upload a daily file and later upload a monthly file containing the same period. The intake layer stores sanitized row payloads; customer identifiers are hashed before they enter the database. The `storagePath` field is ready for the private original-file storage adapter before production rollout.
 
-After accepted rows are written to the intake ledger, the importer also normalizes them into the operational tables: charging sessions, billing transactions, charger alarms, or status events. Station, charger, connector, and hashed customer references are created or reused automatically. A row that cannot be normalized is retained as an intake record and reported in `data_quality_issues` instead of silently disappearing.
+After accepted rows are written to the intake ledger, the importer also normalizes them into the operational tables: charging sessions, billing transactions, charger alarms, or status events. Station, charger, connector, and hashed customer references are created or reused automatically. Normalization runs in bounded batches so larger monthly files do not process one row at a time. A row that cannot be normalized is retained as an intake record and reported in `data_quality_issues` instead of silently disappearing.
 
 The `/dashboard` page provides KPI and trend data from Neon for sessions, kWh, revenue, unique customers, average duration, short sessions, short-session rate, average energy per session, alarm events, alarm rate, peak hours, completed imports, and unresolved data-quality issues. It includes 7-, 30-, and 90-day date presets. Date filters use the station's Asia/Bangkok timezone and are converted to timestamp ranges for querying.
 

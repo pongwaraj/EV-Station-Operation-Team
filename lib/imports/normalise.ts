@@ -16,19 +16,19 @@ import { firstValue, normaliseValue, parseTimestamp, sha256, type ImportSourceTy
 type Db = ReturnType<typeof getDb>;
 
 const fields = {
-  station: ["station", "station name", "station_name", "站点", "站点名称", "充电站"],
+  station: ["station", "station name", "station_name", "ชื่อสถานีอัดประจุ", "站点", "站点名称", "充电站"],
   order: ["order no", "order_no", "order number", "order id", "order_id", "order no.", "订单号"],
-  customer: ["v id", "v_id", "vid", "vehicle id", "vehicle_id", "vin", "card number user id", "rfid", "用户id", "客户id"],
+  customer: ["v id", "v_id", "vid", "vcard", "vehicle id", "vehicle_id", "vin", "card number user id", "rfid", "用户id", "客户id"],
   vin: ["vehicle vin", "vin", "vehicle identification number"],
-  charger: ["charger", "charger name", "charger serial", "charger sn", "charger number", "serial number", "sn", "设备序列号", "充电桩"],
-  connector: ["connector", "connector no", "connector_no", "connector no.", "枪口", "充电枪"],
-  start: ["start time", "start_time", "start at", "start_at", "charge start time", "order time", "service date", "date", "time", "timestamp", "alarm start time", "开始时间", "开始充电时间", "日期", "时间"],
-  end: ["end time", "end_time", "end at", "end_at", "stop time", "alarm end time", "结束时间", "结束充电时间"],
+  charger: ["charger", "charger name", "charger serial", "charger sn", "charger number", "serial number", "sn", "ชื่อเครื่องอัดประจุ", "设备序列号", "充电桩"],
+  connector: ["connector", "connector no", "connector_no", "connector no.", "หัวชาร์จ", "枪口", "充电枪"],
+  start: ["start time", "start timestamp", "start_time", "start_timestamp", "start at", "start_at", "charge start time", "order time", "service date", "date", "time", "timestamp", "alarm start time", "开始时间", "开始充电时间", "日期", "เวลา"],
+  end: ["end time", "end_time", "end at", "end_at", "stop time", "stop_timestamp", "stop timestamp", "alarm end time", "结束时间", "结束充电时间"],
   beginSoc: ["begin soc", "begin_soc", "soc start", "初始soc"],
   endSoc: ["end soc", "end_soc", "soc end", "结束soc"],
-  amount: ["charging amount", "charging amount kwh", "energy", "energy kwh", "kwh", "电量"],
-  revenue: ["revenue", "revenue thb", "amount", "total amount", "charging fee", "收入", "金额"],
-  duration: ["duration", "duration seconds", "duration_seconds", "持续时间"],
+  amount: ["charging amount", "charging amount kwh", "energy", "energy kwh", "kwh", "หน่วยไฟฟ้า (kwh)", "电量"],
+  revenue: ["revenue", "revenue thb", "amount", "total amount", "charging fee", "รายได้ (บาท)", "收入", "金额"],
+  duration: ["duration", "daration", "duration seconds", "duration_seconds", "持续时间"],
   stopReason: ["stop reason", "stop_reason", "停止原因"],
   reasonCategory: ["reason category", "reason_category", "原因分类"],
   shutdownCode: ["shutdown code", "shutdown_code", "关机码"],
@@ -151,85 +151,97 @@ async function ensureAssets(db: Db, row: PreparedRow) {
   return { stationId, chargerId, connectorId, customerIdentifierId };
 }
 
+async function normaliseOneRow(db: Db, sourceType: ImportSourceType, row: PreparedRow, importId: string) {
+  if (!row.eventTimestamp || !row.sourceRecordKey) throw new Error("ไม่พบ timestamp หรือ source key");
+  const assets = await ensureAssets(db, row);
+  const startAt = row.eventTimestamp;
+  const endAt = parseTimestamp(firstValue(row.rawRow, fields.end));
+  const rawRow = row.sanitizedRow;
+
+  if (sourceType === "charging_sessions") {
+    const orderNo = text(row.rawRow, fields.order) || `source:${row.sourceRecordKey}`;
+    await db.insert(chargingSessions).values({
+      importId,
+      orderNo,
+      stationId: assets.stationId,
+      chargerId: assets.chargerId,
+      connectorId: assets.connectorId,
+      customerIdentifierId: assets.customerIdentifierId,
+      startAt,
+      endAt,
+      durationSeconds: integer(row.rawRow, fields.duration),
+      beginSoc: integer(row.rawRow, fields.beginSoc),
+      endSoc: integer(row.rawRow, fields.endSoc),
+      chargingAmountKwh: decimal(row.rawRow, fields.amount),
+      stopReasonRaw: text(row.rawRow, fields.stopReason),
+      reasonCategory: text(row.rawRow, fields.reasonCategory),
+      shutdownCode: integer(row.rawRow, fields.shutdownCode),
+      sessionType: text(row.rawRow, fields.type),
+      vehicleVinHash: text(row.rawRow, fields.vin) ? sha256(text(row.rawRow, fields.vin) as string) : null,
+      rawRow,
+    }).onConflictDoNothing({ target: chargingSessions.orderNo });
+  } else if (sourceType === "billing_transactions") {
+    await db.insert(billingTransactions).values({
+      importId,
+      stationId: assets.stationId,
+      chargerId: assets.chargerId,
+      connectorId: assets.connectorId,
+      customerIdentifierId: assets.customerIdentifierId,
+      serviceDate: startAt,
+      startAt,
+      endAt,
+      durationSeconds: integer(row.rawRow, fields.duration),
+      chargingAmountKwh: decimal(row.rawRow, fields.amount),
+      revenueThb: decimal(row.rawRow, fields.revenue),
+      sourceRowNumber: row.rowNumber,
+      rawRow,
+    });
+  } else if (sourceType === "charger_alarms") {
+    await db.insert(chargerAlarms).values({
+      importId,
+      stationId: assets.stationId,
+      chargerId: assets.chargerId,
+      connectorId: assets.connectorId,
+      alarmCode: integer(row.rawRow, fields.alarmCode),
+      alarmReasonRaw: text(row.rawRow, fields.alarmReason),
+      startAt,
+      endAt,
+      durationSeconds: endAt ? Math.max(0, Math.round((endAt.getTime() - startAt.getTime()) / 1000)) : null,
+      status: text(row.rawRow, fields.status),
+      rawRow,
+    });
+  } else {
+    await db.insert(statusEvents).values({
+      importId,
+      stationId: assets.stationId,
+      chargerId: assets.chargerId,
+      connectorId: assets.connectorId,
+      observedAt: startAt,
+      status: text(row.rawRow, fields.status) || "unknown",
+      rawRow,
+    });
+  }
+}
+
 export async function normaliseImportedRows(db: Db, sourceType: ImportSourceType, rows: PreparedRow[], importId: string) {
   let normalizedRows = 0;
   const issues: Array<{ sourceRowNumber: number; message: string }> = [];
+  const batchSize = 25;
 
-  for (const row of rows) {
-    try {
-      if (!row.eventTimestamp || !row.sourceRecordKey) throw new Error("ไม่พบ timestamp หรือ source key");
-      const assets = await ensureAssets(db, row);
-      const startAt = row.eventTimestamp;
-      const endAt = parseTimestamp(firstValue(row.rawRow, fields.end));
-      const rawRow = row.sanitizedRow;
-
-      if (sourceType === "charging_sessions") {
-        const orderNo = text(row.rawRow, fields.order) || `source:${row.sourceRecordKey}`;
-        await db.insert(chargingSessions).values({
-          importId,
-          orderNo,
-          stationId: assets.stationId,
-          chargerId: assets.chargerId,
-          connectorId: assets.connectorId,
-          customerIdentifierId: assets.customerIdentifierId,
-          startAt,
-          endAt,
-          durationSeconds: integer(row.rawRow, fields.duration),
-          beginSoc: integer(row.rawRow, fields.beginSoc),
-          endSoc: integer(row.rawRow, fields.endSoc),
-          chargingAmountKwh: decimal(row.rawRow, fields.amount),
-          stopReasonRaw: text(row.rawRow, fields.stopReason),
-          reasonCategory: text(row.rawRow, fields.reasonCategory),
-          shutdownCode: integer(row.rawRow, fields.shutdownCode),
-          sessionType: text(row.rawRow, fields.type),
-          vehicleVinHash: text(row.rawRow, fields.vin) ? sha256(text(row.rawRow, fields.vin) as string) : null,
-          rawRow,
-        }).onConflictDoNothing({ target: chargingSessions.orderNo });
-      } else if (sourceType === "billing_transactions") {
-        await db.insert(billingTransactions).values({
-          importId,
-          stationId: assets.stationId,
-          chargerId: assets.chargerId,
-          connectorId: assets.connectorId,
-          customerIdentifierId: assets.customerIdentifierId,
-          serviceDate: startAt,
-          startAt,
-          endAt,
-          durationSeconds: integer(row.rawRow, fields.duration),
-          chargingAmountKwh: decimal(row.rawRow, fields.amount),
-          revenueThb: decimal(row.rawRow, fields.revenue),
-          sourceRowNumber: row.rowNumber,
-          rawRow,
-        });
-      } else if (sourceType === "charger_alarms") {
-        await db.insert(chargerAlarms).values({
-          importId,
-          stationId: assets.stationId,
-          chargerId: assets.chargerId,
-          connectorId: assets.connectorId,
-          alarmCode: integer(row.rawRow, fields.alarmCode),
-          alarmReasonRaw: text(row.rawRow, fields.alarmReason),
-          startAt,
-          endAt,
-          durationSeconds: endAt ? Math.max(0, Math.round((endAt.getTime() - startAt.getTime()) / 1000)) : null,
-          status: text(row.rawRow, fields.status),
-          rawRow,
-        });
-      } else {
-        await db.insert(statusEvents).values({
-          importId,
-          stationId: assets.stationId,
-          chargerId: assets.chargerId,
-          connectorId: assets.connectorId,
-          observedAt: startAt,
-          status: text(row.rawRow, fields.status) || "unknown",
-          rawRow,
-        });
+  for (let index = 0; index < rows.length; index += batchSize) {
+    const batch = rows.slice(index, index + batchSize);
+    const results = await Promise.all(batch.map(async (row) => {
+      try {
+        await normaliseOneRow(db, sourceType, row, importId);
+        return { ok: true as const };
+      } catch (error) {
+        return { ok: false as const, issue: { sourceRowNumber: row.rowNumber, message: error instanceof Error ? error.message : "normalize failed" } };
       }
-      normalizedRows += 1;
-    } catch (error) {
-      issues.push({ sourceRowNumber: row.rowNumber, message: error instanceof Error ? error.message : "normalize failed" });
-    }
+    }));
+    results.forEach((result) => {
+      if (result.ok) normalizedRows += 1;
+      else issues.push(result.issue);
+    });
   }
 
   if (issues.length) {
