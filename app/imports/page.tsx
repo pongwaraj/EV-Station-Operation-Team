@@ -12,6 +12,8 @@ type Report = {
   duplicateInDatabase?: number;
   readyToImport?: number;
   acceptedRows?: number;
+  normalizedRows?: number;
+  normalizationIssues?: number;
   duplicateRows?: number;
   databaseConfigured?: boolean;
   periodStart?: string | null;
@@ -109,12 +111,13 @@ export default function ImportsPage() {
             <div className="metric-list">
               <span>แถวทั้งหมด <strong>{report.totalRows ?? 0}</strong></span>
               <span>พร้อมนำเข้า <strong>{report.readyToImport ?? report.acceptedRows ?? 0}</strong></span>
+              {report.status === "completed" || report.status === "completed_with_warnings" ? <span>เขียนเข้า table หลัก <strong>{report.normalizedRows ?? 0}</strong></span> : null}
               <span>ซ้ำในไฟล์ <strong>{report.duplicateWithinFile ?? 0}</strong></span>
               <span>ซ้ำใน DB <strong>{report.duplicateInDatabase ?? report.duplicateRows ?? 0}</strong></span>
               <span>ไม่ผ่าน timestamp <strong>{report.invalidRows ?? 0}</strong></span>
             </div>
             <p className="hint">ช่วงข้อมูล: {displayDate(report.periodStart)} — {displayDate(report.periodEnd)}</p>
-            {report.status === "completed" && <p className="success-box">{report.message}</p>}
+            {(report.status === "completed" || report.status === "completed_with_warnings") && <p className="success-box">{report.message}</p>}
             {report.databaseConfigured === false && <p className="hint">Preview ทำงานได้ แต่ยังนำเข้าจริงไม่ได้จนกว่าจะตั้งค่า DATABASE_URL</p>}
           </article>
           <article className="panel report-panel">

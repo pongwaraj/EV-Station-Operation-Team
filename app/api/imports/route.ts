@@ -2,6 +2,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { getDb } from "../../../lib/db/client";
 import { dataImports, dataQualityIssues, importRows } from "../../../lib/db/schema";
 import { importSourceTypes, parseUpload, type ImportSourceType } from "../../../lib/imports/intake";
+import { normaliseImportedRows } from "../../../lib/imports/normalise";
 
 export const runtime = "nodejs";
 
@@ -93,6 +94,15 @@ export async function POST(request: Request) {
       acceptedRows += inserted.length;
     }
 
+    const persistedRows = acceptedRows
+      ? await db.select({ sourceRecordKey: importRows.sourceRecordKey }).from(importRows).where(eq(importRows.importId, currentImportId))
+      : [];
+    const persistedKeys = new Set(persistedRows.map((row) => row.sourceRecordKey));
+    const rowsToNormalize = candidates.filter((row) => persistedKeys.has(row.sourceRecordKey as string));
+    const normalized = rowsToNormalize.length
+      ? await normaliseImportedRows(db, sourceType, rowsToNormalize, currentImportId)
+      : { normalizedRows: 0, issues: [] };
+
     if (invalidRows.length) {
       await db.insert(dataQualityIssues).values(
         invalidRows.map((row) => ({
@@ -110,10 +120,10 @@ export async function POST(request: Request) {
     await db
       .update(dataImports)
       .set({
-        status: "completed",
+        status: normalized.issues.length ? "completed_with_warnings" : "completed",
         completedAt: new Date(),
         rowCount: parsed.rows.length,
-        errorSummary: JSON.stringify({ acceptedRows, duplicateCount, invalidRows: invalidRows.length }),
+        errorSummary: JSON.stringify({ acceptedRows, normalizedRows: normalized.normalizedRows, normalizationIssues: normalized.issues.length, duplicateCount, invalidRows: invalidRows.length }),
       })
       .where(eq(dataImports.id, currentImportId));
 
@@ -122,6 +132,8 @@ export async function POST(request: Request) {
       importId: currentImportId,
       totalRows: parsed.rows.length,
       acceptedRows,
+      normalizedRows: normalized.normalizedRows,
+      normalizationIssues: normalized.issues.length,
       duplicateRows: duplicateCount,
       invalidRows: invalidRows.length,
       message: "นำเข้าเฉพาะรายการใหม่แล้ว รายการซ้ำถูกข้ามเรียบร้อย",

@@ -45,7 +45,7 @@ const aliases = {
   status: ["status", "alarm status", "state", "状态"],
 };
 
-function normaliseHeader(value: unknown) {
+export function normaliseHeader(value: unknown) {
   return String(value ?? "")
     .trim()
     .toLowerCase()
@@ -53,7 +53,7 @@ function normaliseHeader(value: unknown) {
     .trim();
 }
 
-function normaliseValue(value: unknown) {
+export function normaliseValue(value: unknown) {
   if (value instanceof Date) return value.toISOString();
   if (value === null || value === undefined) return "";
   return String(value).trim().replace(/\s+/g, " ").toLowerCase();
@@ -70,7 +70,7 @@ function stableJson(value: unknown): string {
   return JSON.stringify(value ?? null);
 }
 
-function sha256(value: string | Buffer) {
+export function sha256(value: string | Buffer) {
   return createHash("sha256").update(value).digest("hex");
 }
 
@@ -78,13 +78,13 @@ export async function sha256File(file: File) {
   return sha256(Buffer.from(await file.arrayBuffer()));
 }
 
-function firstValue(row: RawRow, names: string[]) {
+export function firstValue(row: RawRow, names: string[]) {
   const wanted = new Set(names.map(normaliseHeader));
   const found = Object.entries(row).find(([key, value]) => wanted.has(normaliseHeader(key)) && value !== null && value !== "");
   return found?.[1] ?? null;
 }
 
-function parseTimestamp(value: unknown): Date | null {
+export function parseTimestamp(value: unknown): Date | null {
   if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
   if (typeof value === "number" && value > 20000 && value < 100000) {
     const excelEpoch = Date.UTC(1899, 11, 30);
