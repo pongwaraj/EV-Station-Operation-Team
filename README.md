@@ -36,6 +36,8 @@ After accepted rows are written to the intake ledger, the importer also normaliz
 
 The `/dashboard` page provides KPI and trend data from Neon for sessions, kWh, revenue, unique customers, average duration, short sessions, short-session rate, average energy per session, alarm events, alarm rate, peak hours, completed imports, and unresolved data-quality issues. It includes 7-, 30-, and 90-day date presets. Date filters use the station's Asia/Bangkok timezone and are converted to timestamp ranges for querying.
 
+The `/api/health` endpoint checks whether the production database is configured, reachable, and contains the required operational tables. The header reflects this status without exposing connection details.
+
 ## Database
 
 The migrations are in `db/migrations/`. `0000_foundation.sql` creates the operational tables and `0001_import_dedup.sql` creates the timestamp-based intake ledger. Order List and Dashboard CSV can therefore be reconciled without double counting. Set `DATABASE_URL` in Vercel before importing production data.

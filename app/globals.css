@@ -120,6 +120,35 @@ body {
   white-space: nowrap;
 }
 
+.system-pill {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 800;
+  gap: 7px;
+  padding: 8px 11px;
+  white-space: nowrap;
+}
+
+.system-pill.ready {
+  background: #edf9f1;
+  color: #17663a;
+}
+
+.system-pill.pending,
+.system-pill.loading {
+  background: #fff7e8;
+  color: #9a5b10;
+}
+
+.system-dot {
+  background: currentColor;
+  border-radius: 50%;
+  height: 7px;
+  width: 7px;
+}
+
 .station-dot {
   background: var(--orange);
   border-radius: 50%;
@@ -688,10 +717,16 @@ th {
     margin-left: auto;
   }
 
+  .system-pill {
+    flex-basis: 100%;
+    justify-content: center;
+    order: 2;
+  }
+
   .main-nav {
     flex-basis: 100%;
     margin: 0;
-    order: 3;
+    order: 4;
   }
 
   .nav-link {
