@@ -25,6 +25,112 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+.app-header {
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.app-header-inner {
+  align-items: center;
+  display: flex;
+  gap: 30px;
+  justify-content: space-between;
+  margin: 0 auto;
+  max-width: 1180px;
+  min-height: 72px;
+  padding: 0 28px;
+}
+
+.brand {
+  align-items: center;
+  color: var(--navy);
+  display: inline-flex;
+  gap: 10px;
+  min-width: 190px;
+  text-decoration: none;
+}
+
+.brand-mark {
+  align-items: center;
+  background: var(--navy);
+  border-radius: 10px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 900;
+  height: 34px;
+  justify-content: center;
+  letter-spacing: 0.08em;
+  width: 42px;
+}
+
+.brand-name,
+.brand-subtitle {
+  display: block;
+}
+
+.brand-name {
+  font-size: 0.9rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.brand-subtitle {
+  color: var(--muted);
+  font-size: 0.72rem;
+  margin-top: 2px;
+}
+
+.main-nav {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  margin-right: auto;
+}
+
+.nav-link {
+  border-radius: 9px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 10px 14px;
+  text-decoration: none;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  background: #edf4f8;
+  color: var(--navy);
+}
+
+.station-pill {
+  align-items: center;
+  background: #edf9f1;
+  border: 1px solid #c7ead5;
+  border-radius: 999px;
+  color: #17663a;
+  display: inline-flex;
+  font-size: 0.76rem;
+  font-weight: 800;
+  gap: 7px;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+
+.station-dot {
+  background: var(--orange);
+  border-radius: 50%;
+  height: 7px;
+  width: 7px;
+}
+
+.app-main {
+  min-height: calc(100vh - 72px);
+}
+
 .shell {
   margin: 0 auto;
   max-width: 1180px;
@@ -242,6 +348,55 @@ button:disabled {
   color: #a32620;
 }
 
+.error-state {
+  background: #fff9f8;
+  border-color: #f0c9c5;
+}
+
+.error-state strong {
+  color: #a32620;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.error-state .hint {
+  margin-bottom: 14px;
+}
+
+.loading-state,
+.empty-state {
+  text-align: center;
+}
+
+.loading-state p {
+  color: var(--muted);
+  margin: 0;
+}
+
+.empty-state {
+  margin-top: 18px;
+  padding: 42px 24px;
+}
+
+.empty-state .section-label {
+  margin-bottom: 8px;
+}
+
+.empty-state h2 {
+  margin-bottom: 8px;
+}
+
+.empty-state .hint {
+  margin-bottom: 20px;
+}
+
+.freshness-row {
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin: 8px 2px 0;
+  text-align: right;
+}
+
 .success-box {
   background: #edf9f1;
   color: #17663a;
@@ -327,6 +482,48 @@ th {
   font: inherit;
 }
 
+.process-steps {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: 22px;
+}
+
+.process-step {
+  align-items: center;
+  background: #eef4f8;
+  border: 1px solid #dce8ef;
+  border-radius: 14px;
+  display: grid;
+  gap: 2px 10px;
+  grid-template-columns: 30px 1fr;
+  padding: 12px 14px;
+}
+
+.process-step span {
+  align-items: center;
+  background: var(--navy);
+  border-radius: 50%;
+  color: #fff;
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 800;
+  grid-row: span 2;
+  height: 26px;
+  justify-content: center;
+  width: 26px;
+}
+
+.process-step strong {
+  color: var(--navy);
+  font-size: 0.85rem;
+}
+
+.process-step small {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
 .kpi-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-bottom: 18px;
@@ -389,6 +586,32 @@ th {
 }
 
 @media (max-width: 800px) {
+  .app-header-inner {
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    min-height: 74px;
+    padding: 10px 18px;
+  }
+
+  .brand {
+    min-width: 0;
+  }
+
+  .station-pill {
+    margin-left: auto;
+  }
+
+  .main-nav {
+    flex-basis: 100%;
+    margin: 0;
+    order: 3;
+  }
+
+  .nav-link {
+    flex: 1;
+    text-align: center;
+  }
+
   .shell {
     padding: 36px 18px 56px;
   }
@@ -401,7 +624,8 @@ th {
   }
 
   .kpi-grid,
-  .filter-form {
+  .filter-form,
+  .process-steps {
     grid-template-columns: 1fr;
   }
 

@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
+import AppHeader from "./components/AppHeader";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "EV Station Operations Dashboard",
-  description: "Meta Mall station operations foundation",
+  title: "Meta Mall | TCE ChargeX",
+  description: "ภาพรวมการใช้งานและประสิทธิภาพสถานีชาร์จ Meta Mall",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="th">
-      <body>{children}</body>
+      <body>
+        <AppHeader />
+        <div className="app-main">{children}</div>
+      </body>
     </html>
   );
 }

@@ -23,15 +23,21 @@ type Report = {
 };
 
 const sourceOptions: Array<{ value: SourceType; label: string }> = [
-  { value: "charging_sessions", label: "Order / Charging session" },
-  { value: "billing_transactions", label: "Billing / Dashboard export" },
-  { value: "charger_alarms", label: "Charger alarm" },
-  { value: "status_events", label: "Status / uptime" },
+  { value: "charging_sessions", label: "ประวัติการชาร์จ" },
+  { value: "billing_transactions", label: "ยอดใช้งานและรายได้" },
+  { value: "charger_alarms", label: "ประวัติ Alarm" },
+  { value: "status_events", label: "สถานะการทำงาน" },
 ];
 
 function displayDate(value: string | null | undefined) {
   if (!value) return "-";
   return new Intl.DateTimeFormat("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" }).format(new Date(value));
+}
+
+function displayState(value: string) {
+  if (value === "ready") return "พร้อมนำเข้า";
+  if (value === "duplicate_in_database") return "มีข้อมูลแล้ว";
+  return value;
 }
 
 export default function ImportsPage() {
@@ -61,7 +67,7 @@ export default function ImportsPage() {
       form.append("sourceType", sourceType);
       const response = await fetch(endpoint, { method: "POST", body: form });
       const result = (await response.json()) as Report;
-      if (!response.ok) throw new Error(result.message ?? "ดำเนินการไม่สำเร็จ");
+      if (!response.ok) throw new Error("ไม่สามารถดำเนินการได้ในขณะนี้");
       setReport(result);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "ดำเนินการไม่สำเร็จ");
@@ -73,9 +79,15 @@ export default function ImportsPage() {
   return (
     <main className="shell">
       <section className="hero compact-hero">
-        <p className="eyebrow">TCE EV OPERATIONS / DATA INTAKE</p>
-        <h1>นำเข้าข้อมูลรายวันหรือรายเดือน</h1>
-        <p className="lede">เลือกประเภทไฟล์ ระบบจะตรวจสอบ timestamp และรายการซ้ำก่อนนำเข้า DB ทุกครั้ง</p>
+        <p className="eyebrow">TCE CHARGEX</p>
+        <h1>นำเข้าข้อมูลสถานี</h1>
+        <p className="lede">อัปโหลดไฟล์รายวันหรือรายเดือน ระบบจะตรวจสอบข้อมูลซ้ำก่อนบันทึกทุกครั้ง</p>
+      </section>
+
+      <section className="process-steps" aria-label="ขั้นตอนการนำเข้าข้อมูล">
+        <div className="process-step"><span>1</span><strong>เลือกไฟล์</strong><small>ไฟล์ Excel หรือ CSV</small></div>
+        <div className="process-step"><span>2</span><strong>ตรวจสอบข้อมูล</strong><small>ตรวจวันเวลาและรายการซ้ำ</small></div>
+        <div className="process-step"><span>3</span><strong>นำเข้า</strong><small>บันทึกเฉพาะรายการใหม่</small></div>
       </section>
 
       <section className="panel import-panel">
@@ -99,34 +111,34 @@ export default function ImportsPage() {
             </button>
           </div>
         </form>
-        <p className="hint">ไฟล์เดือนเดียวกันกับไฟล์รายวันสามารถอัปโหลดซ้ำได้ ระบบจะข้ามรายการที่มี source key เดิมโดยอัตโนมัติ</p>
+        <p className="hint">ไฟล์เดือนเดียวกันกับไฟล์รายวันสามารถอัปโหลดซ้ำได้ ระบบจะข้ามรายการที่มีข้อมูลเดิมโดยอัตโนมัติ</p>
         {error && <p className="error-box">{error}</p>}
       </section>
 
       {report && (
         <section className="report-grid">
           <article className="panel report-panel">
-            <p className="section-label">Preflight result</p>
-            <h2>{report.status === "completed" ? "นำเข้าเสร็จแล้ว" : "ผลการตรวจสอบ"}</h2>
+            <p className="section-label">ผลการตรวจสอบ</p>
+            <h2>{report.status === "completed" ? "นำเข้าเสร็จแล้ว" : report.status === "completed_with_warnings" ? "นำเข้าเสร็จแล้ว มีรายการที่ควรตรวจสอบ" : "ตรวจสอบข้อมูลแล้ว"}</h2>
             <div className="metric-list">
               <span>แถวทั้งหมด <strong>{report.totalRows ?? 0}</strong></span>
               <span>พร้อมนำเข้า <strong>{report.readyToImport ?? report.acceptedRows ?? 0}</strong></span>
-              {report.status === "completed" || report.status === "completed_with_warnings" ? <span>เขียนเข้า table หลัก <strong>{report.normalizedRows ?? 0}</strong></span> : null}
+              {report.status === "completed" || report.status === "completed_with_warnings" ? <span>บันทึกข้อมูลแล้ว <strong>{report.normalizedRows ?? 0}</strong></span> : null}
               <span>ซ้ำในไฟล์ <strong>{report.duplicateWithinFile ?? 0}</strong></span>
-              <span>ซ้ำใน DB <strong>{report.duplicateInDatabase ?? report.duplicateRows ?? 0}</strong></span>
+              <span>ข้อมูลซ้ำที่มีอยู่แล้ว <strong>{report.duplicateInDatabase ?? report.duplicateRows ?? 0}</strong></span>
               <span>ไม่ผ่าน timestamp <strong>{report.invalidRows ?? 0}</strong></span>
             </div>
             <p className="hint">ช่วงข้อมูล: {displayDate(report.periodStart)} — {displayDate(report.periodEnd)}</p>
             {(report.status === "completed" || report.status === "completed_with_warnings") && <p className="success-box">{report.message}</p>}
-            {report.databaseConfigured === false && <p className="hint">Preview ทำงานได้ แต่ยังนำเข้าจริงไม่ได้จนกว่าจะตั้งค่า DATABASE_URL</p>}
+            {report.databaseConfigured === false && <p className="hint">ตรวจสอบข้อมูลเรียบร้อยแล้ว ขณะนี้ระบบยังไม่พร้อมบันทึกข้อมูล กรุณาลองใหม่ภายหลัง</p>}
           </article>
           <article className="panel report-panel">
-            <p className="section-label">Sample rows</p>
+            <p className="section-label">ตัวอย่างข้อมูล</p>
             <div className="sample-table-wrap">
               <table>
-                <thead><tr><th>Row</th><th>Timestamp</th><th>Station</th><th>Entity</th><th>State</th></tr></thead>
+                <thead><tr><th>แถว</th><th>วันเวลา</th><th>สถานี</th><th>รายการ</th><th>สถานะ</th></tr></thead>
                 <tbody>
-                  {(report.sample ?? []).map((row) => <tr key={`${row.rowNumber}-${row.timestamp}`}><td>{row.rowNumber}</td><td>{displayDate(row.timestamp)}</td><td>{row.station ?? "-"}</td><td>{row.entity ?? "-"}</td><td>{row.state}</td></tr>)}
+                  {(report.sample ?? []).map((row) => <tr key={`${row.rowNumber}-${row.timestamp}`}><td>{row.rowNumber}</td><td>{displayDate(row.timestamp)}</td><td>{row.station ?? "-"}</td><td>{row.entity ?? "-"}</td><td>{displayState(row.state)}</td></tr>)}
                 </tbody>
               </table>
             </div>

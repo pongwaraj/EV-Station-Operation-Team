@@ -45,10 +45,11 @@ export default function DashboardPage() {
     try {
       const response = await fetch(`/api/dashboard/overview?${query.toString()}`);
       const result = (await response.json()) as DashboardData;
-      if (!response.ok) throw new Error(result.message ?? "ไม่สามารถอ่าน dashboard ได้");
+      if (!response.ok) throw new Error(result.message ?? "dashboard unavailable");
       setData(result);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "ไม่สามารถอ่าน dashboard ได้");
+      console.error("Unable to load dashboard", loadError);
+      setError("ขณะนี้ยังไม่สามารถแสดงข้อมูลได้");
     } finally {
       setLoading(false);
     }
@@ -65,9 +66,9 @@ export default function DashboardPage() {
   return (
     <main className="shell">
       <section className="hero compact-hero">
-        <p className="eyebrow">TCE EV OPERATIONS / EXECUTIVE VIEW</p>
-        <h1>Meta Mall Operations Overview</h1>
-        <p className="lede">ภาพรวมประสิทธิภาพการใช้งาน สัญญาณผิดปกติ และแนวโน้มตามช่วงวันที่</p>
+        <p className="eyebrow">TCE CHARGEX</p>
+        <h1>ภาพรวมสถานี Meta Mall</h1>
+        <p className="lede">ติดตามการใช้งาน ประสิทธิภาพการชาร์จ และสัญญาณที่ควรดูแลในช่วงวันที่เลือก</p>
       </section>
 
       <section className="panel filter-panel">
@@ -78,57 +79,76 @@ export default function DashboardPage() {
         </form>
       </section>
 
-      {loading && <section className="panel"><p>กำลังอ่านข้อมูลจาก Neon...</p></section>}
-      {error && <section className="panel error-box"><strong>Dashboard ยังไม่พร้อม:</strong> {error}<p className="hint">ตรวจสอบ DATABASE_URL และรัน migration ก่อนใช้งานจริง</p></section>}
+      {loading && <section className="panel loading-state"><p>กำลังโหลดข้อมูล…</p></section>}
+      {error && (
+        <section className="panel error-state" role="alert">
+          <strong>{error}</strong>
+          <p className="hint">ลองใหม่อีกครั้ง หรือแจ้งทีมดูแลระบบหากยังพบปัญหา</p>
+          <button type="button" onClick={() => void loadDashboard()}>ลองใหม่</button>
+        </section>
+      )}
 
       {data?.kpis && (
         <>
           <section className="grid kpi-grid">
-            <article className="card"><p className="card-label">Charging sessions</p><p className="kpi-value">{formatNumber(data.kpis.sessions)}</p></article>
-            <article className="card"><p className="card-label">Energy delivered</p><p className="kpi-value">{formatNumber(data.kpis.energyKwh, 1)} <small>kWh</small></p></article>
-            <article className="card"><p className="card-label">Revenue</p><p className="kpi-value">฿{formatNumber(data.kpis.revenueThb, 0)}</p></article>
-            <article className="card"><p className="card-label">Unique customers</p><p className="kpi-value">{formatNumber(data.kpis.uniqueCustomers)}</p></article>
+            <article className="card"><p className="card-label">จำนวนการชาร์จ</p><p className="kpi-value">{formatNumber(data.kpis.sessions)}</p></article>
+            <article className="card"><p className="card-label">พลังงานที่จ่าย</p><p className="kpi-value">{formatNumber(data.kpis.energyKwh, 1)} <small>kWh</small></p></article>
+            <article className="card"><p className="card-label">รายได้จากการชาร์จ</p><p className="kpi-value">฿{formatNumber(data.kpis.revenueThb, 0)}</p></article>
+            <article className="card"><p className="card-label">ลูกค้าที่ใช้งาน</p><p className="kpi-value">{formatNumber(data.kpis.uniqueCustomers)}</p></article>
           </section>
 
           <section className="content-grid dashboard-panels">
             <article className="panel">
-              <p className="section-label">Daily trend</p>
+              <p className="section-label">แนวโน้มรายวัน</p>
               <h2>ปริมาณการใช้งานและพลังงาน</h2>
               <div className="trend-list">
-                {(data.trend ?? []).map((item) => <div className="trend-row" key={item.date}><span>{formatDate(item.date)}</span><div className="bar-track"><div className="bar-fill" style={{ width: `${Math.max(3, (item.sessions / trendMax) * 100)}%` }} /></div><strong>{item.sessions} sessions</strong><em>{item.energyKwh} kWh</em></div>)}
+                {(data.trend ?? []).map((item) => <div className="trend-row" key={item.date}><span>{formatDate(item.date)}</span><div className="bar-track"><div className="bar-fill" style={{ width: `${Math.max(3, (item.sessions / trendMax) * 100)}%` }} /></div><strong>{formatNumber(item.sessions)} ครั้ง</strong><em>{formatNumber(item.energyKwh, 1)} kWh</em></div>)}
                 {!data.trend?.length && <p className="hint">ยังไม่มีข้อมูลในช่วงวันที่เลือก</p>}
               </div>
             </article>
             <article className="panel">
-              <p className="section-label">Experience signals</p>
+              <p className="section-label">สัญญาณประสบการณ์ใช้งาน</p>
               <h2>ประเด็นที่ควรติดตาม</h2>
               <div className="metric-list">
-                <span>Average session <strong>{formatNumber(data.kpis.avgDurationMinutes, 1)} นาที</strong></span>
-                <span>Short / abnormal sessions <strong>{formatNumber(data.kpis.shortSessions)}</strong></span>
-                <span>Alarm events <strong>{formatNumber(data.kpis.alarmEvents)}</strong></span>
-                <span>Alarm duration <strong>{formatNumber(data.kpis.alarmDurationMinutes, 1)} นาที</strong></span>
-                <span>Peak hour <strong>{peak ? `${String(peak.hour).padStart(2, "0")}:00` : "-"}</strong></span>
+                <span>ระยะเวลาชาร์จเฉลี่ย <strong>{formatNumber(data.kpis.avgDurationMinutes, 1)} นาที</strong></span>
+                <span>การชาร์จสั้นผิดปกติ <strong>{formatNumber(data.kpis.shortSessions)}</strong></span>
+                <span>เหตุการณ์ Alarm <strong>{formatNumber(data.kpis.alarmEvents)}</strong></span>
+                <span>ระยะเวลา Alarm <strong>{formatNumber(data.kpis.alarmDurationMinutes, 1)} นาที</strong></span>
+                <span>ช่วงเวลาที่ใช้งานสูงสุด <strong>{peak ? `${String(peak.hour).padStart(2, "0")}:00 น.` : "-"}</strong></span>
               </div>
             </article>
           </section>
 
           <section className="content-grid dashboard-panels">
             <article className="panel">
-              <p className="section-label">Data readiness</p>
+              <p className="section-label">ความพร้อมของข้อมูล</p>
               <h2>ความพร้อมของข้อมูล</h2>
               <div className="metric-list">
-                <span>Completed imports <strong>{formatNumber(data.imports?.count ?? 0)}</strong></span>
-                <span>Open data-quality issues <strong>{formatNumber((data.quality ?? []).reduce((sum, row) => sum + row.count, 0))}</strong></span>
-                <span>Last import <strong>{data.imports?.lastImportAt ? new Date(data.imports.lastImportAt).toLocaleString("th-TH") : "-"}</strong></span>
+                <span>ชุดข้อมูลที่นำเข้าแล้ว <strong>{formatNumber(data.imports?.count ?? 0)}</strong></span>
+                <span>รายการที่ควรตรวจสอบ <strong>{formatNumber((data.quality ?? []).reduce((sum, row) => sum + row.count, 0))}</strong></span>
+                <span>อัปเดตข้อมูลล่าสุด <strong>{data.imports?.lastImportAt ? new Date(data.imports.lastImportAt).toLocaleString("th-TH") : "-"}</strong></span>
               </div>
             </article>
             <article className="panel dark-panel">
-              <p className="section-label">Management readout</p>
-              <h2>ใช้ Dashboard นี้ตอบคำถามอะไร</h2>
-              <p>ช่วงไหนมี demand สูง, session ผิดปกติเกิดมากน้อยเพียงใด, alarm กระทบประสบการณ์หรือไม่ และข้อมูลล่าสุดพร้อมใช้แค่ไหน</p>
+              <p className="section-label">สรุปสำหรับผู้บริหาร</p>
+              <h2>ประเด็นที่ควรติดตาม</h2>
+              <p>ดูช่วงเวลาที่มีการใช้งานสูง การชาร์จสั้นผิดปกติ เหตุการณ์ Alarm และความพร้อมของข้อมูล เพื่อวางแผนดูแลสถานีได้เร็วขึ้น</p>
             </article>
           </section>
         </>
+      )}
+
+      {!loading && !error && !data?.kpis && (
+        <section className="panel empty-state">
+          <p className="section-label">ยังไม่มีข้อมูล</p>
+          <h2>ยังไม่มีข้อมูลในช่วงเวลานี้</h2>
+          <p className="hint">เลือกช่วงวันที่ใหม่ หรือนำเข้าข้อมูลสถานีเพื่อเริ่มดูภาพรวม</p>
+          <a className="action-link" href="/imports">ไปนำเข้าข้อมูล</a>
+        </section>
+      )}
+
+      {data?.imports?.lastImportAt && !error && (
+        <p className="freshness-row">อัปเดตข้อมูลล่าสุด {new Date(data.imports.lastImportAt).toLocaleString("th-TH")}</p>
       )}
     </main>
   );
