@@ -47,6 +47,7 @@ export default function Home() {
       </section>
 
       <section className="action-row">
+        <a className="action-link secondary-button" href="/dashboard">เปิด Executive Dashboard →</a>
         <a className="action-link" href="/imports">เปิดหน้าตรวจสอบและนำเข้าข้อมูล →</a>
       </section>
     </main>
