@@ -14,3 +14,7 @@ overrides:
   "@typescript-eslint/utils": "8.69.0"
   "@typescript-eslint/visitor-keys": "8.69.0"
   "electron-to-chromium": "1.5.393"
+
+allowBuilds:
+  esbuild: true
+  unrs-resolver: true
