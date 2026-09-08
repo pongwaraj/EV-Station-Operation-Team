@@ -1,0 +1,17 @@
+# Never upload source data or local analysis artifacts to Vercel
+DATA/
+data/
+*.xlsx
+*.xls
+*.csv
+*.zip
+*.pdf
+*.pptx
+outputs/
+.chart-data-*/
+.pptx_build/
+.codex-finalizer/
+*.py
+*.mjs
+*.md
+Project Cashflow Analysis 5 ปี EV Charing Station.xlsx
