@@ -2,7 +2,7 @@ const readiness = [
   { label: "Web application", value: "Foundation ready", tone: "ready" },
   { label: "Neon database", value: "Schema prepared", tone: "ready" },
   { label: "Raw data protection", value: "GitHub excluded", tone: "ready" },
-  { label: "Dashboard data", value: "Awaiting import", tone: "pending" },
+  { label: "Dashboard data", value: "Import preflight ready", tone: "ready" },
 ];
 
 export default function Home() {
@@ -16,8 +16,8 @@ export default function Home() {
           ออกจากกันตั้งแต่ต้น
         </p>
         <div className="meta-row">
-          <span className="pill">Round 1: Foundation</span>
-          <span className="muted">Data import ยังไม่เริ่ม</span>
+          <span className="pill">Round 2: Import control</span>
+          <span className="muted">ตรวจซ้ำด้วย timestamp ก่อนนำเข้า</span>
         </div>
       </section>
 
@@ -44,6 +44,10 @@ export default function Home() {
           <h2>Meta Mall</h2>
           <p>Order sessions, billing transactions, charger alarms และ customer behavior</p>
         </article>
+      </section>
+
+      <section className="action-row">
+        <a className="action-link" href="/imports">เปิดหน้าตรวจสอบและนำเข้าข้อมูล →</a>
       </section>
     </main>
   );

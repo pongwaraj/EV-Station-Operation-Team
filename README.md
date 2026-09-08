@@ -18,10 +18,22 @@ copy .env.example .env.local
 pnpm dev
 ```
 
-The first dashboard view is a foundation screen only. Data import and database connectivity are planned for the next round.
+The `/imports` page accepts `.xlsx`, `.xls`, and `.csv` files for charging sessions, billing exports, charger alarms, and status events.
+
+## Daily/monthly upload and duplicate control
+
+Every upload goes through a preflight step before import:
+
+1. The first worksheet is parsed and timestamp fields are normalized.
+2. A deterministic source record key is calculated from source type, station, timestamp, and available order/customer/device/event fields.
+3. Rows duplicated inside the file or already present in `import_rows` are skipped.
+4. The exact same file is rejected by its SHA-256 fingerprint.
+5. Rows without a usable timestamp are not imported and are recorded as a data-quality issue.
+
+This makes it safe to upload a daily file and later upload a monthly file containing the same period. The intake layer stores sanitized row payloads; customer identifiers are hashed before they enter the database. The `storagePath` field is ready for the private original-file storage adapter before production rollout.
 
 ## Database
 
-The first migration is in `db/migrations/0000_foundation.sql`. It separates imports, sessions, billing, alarms, status events and data quality issues so Order List and Dashboard CSV can be reconciled without double counting.
+The migrations are in `db/migrations/`. `0000_foundation.sql` creates the operational tables and `0001_import_dedup.sql` creates the timestamp-based intake ledger. Order List and Dashboard CSV can therefore be reconciled without double counting.
 
 Do not place production Excel, CSV, V IDs, VINs or database credentials in this repository.

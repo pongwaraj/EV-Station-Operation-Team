@@ -80,6 +80,31 @@ export const customerIdentifiers = pgTable(
   (table) => [uniqueIndex("customer_identifiers_type_hash_idx").on(table.identifierType, table.identifierHash)],
 );
 
+/**
+ * Intake ledger used by both daily and monthly uploads.
+ * A source record key is deterministic, so overlapping files are safe to re-upload.
+ */
+export const importRows = pgTable(
+  "import_rows",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    importId: uuid("import_id").notNull().references(() => dataImports.id),
+    sourceType: text("source_type").notNull(),
+    sourceRecordKey: text("source_record_key").notNull(),
+    contentHash: text("content_hash").notNull(),
+    eventTimestamp: timestamp("event_timestamp", { withTimezone: true }),
+    stationKey: text("station_key"),
+    entityKey: text("entity_key"),
+    sourceRowNumber: integer("source_row_number"),
+    sanitizedRow: jsonb("sanitized_row"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("import_rows_source_record_key_idx").on(table.sourceType, table.sourceRecordKey),
+    uniqueIndex("import_rows_content_hash_idx").on(table.sourceType, table.contentHash),
+  ],
+);
+
 export const chargingSessions = pgTable(
   "charging_sessions",
   {
