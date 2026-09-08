@@ -4,15 +4,19 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 type DashboardData = {
   message?: string;
+  range?: { from: string; to: string };
   kpis?: {
     sessions: number;
     energyKwh: number;
+    averageEnergyPerSession: number;
     revenueThb: number;
     uniqueCustomers: number;
     avgDurationMinutes: number;
     shortSessions: number;
+    shortSessionRate: number;
     alarmEvents: number;
     alarmDurationMinutes: number;
+    alarmRate: number;
   };
   trend?: Array<{ date: string; sessions: number; energyKwh: number; revenueThb: number; alarmEvents: number }>;
   peakHours?: Array<{ hour: number; sessions: number; energyKwh: number }>;
@@ -26,6 +30,10 @@ function formatNumber(value: number, maximumFractionDigits = 0) {
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("th-TH", { day: "2-digit", month: "short" }).format(new Date(`${value}T00:00:00+07:00`));
+}
+
+function formatInputDate(date: Date) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
 }
 
 export default function DashboardPage() {
@@ -63,6 +71,13 @@ export default function DashboardPage() {
   const trendMax = useMemo(() => Math.max(...(data?.trend ?? []).map((item) => item.sessions), 1), [data]);
   const peak = useMemo(() => [...(data?.peakHours ?? [])].sort((a, b) => b.sessions - a.sessions)[0], [data]);
 
+  function setDatePreset(days: number) {
+    const end = new Date();
+    const start = new Date(end.getTime() - (days - 1) * 86400000);
+    setFrom(formatInputDate(start));
+    setTo(formatInputDate(end));
+  }
+
   return (
     <main className="shell">
       <section className="hero compact-hero">
@@ -77,6 +92,10 @@ export default function DashboardPage() {
           <label>ถึง<input type="date" value={to} onChange={(event) => setTo(event.target.value)} /></label>
           <button type="submit">อัปเดตภาพรวม</button>
         </form>
+        <div className="preset-row" aria-label="ช่วงเวลาที่เลือกได้">
+          <span>เลือกช่วงย้อนหลัง แล้วกดอัปเดตภาพรวม</span>
+          {[7, 30, 90].map((days) => <button className="preset-button" key={days} type="button" onClick={() => setDatePreset(days)}>{days} วัน</button>)}
+        </div>
       </section>
 
       {loading && <section className="panel loading-state"><p>กำลังโหลดข้อมูล…</p></section>}
@@ -117,6 +136,21 @@ export default function DashboardPage() {
                 <span>ช่วงเวลาที่ใช้งานสูงสุด <strong>{peak ? `${String(peak.hour).padStart(2, "0")}:00 น.` : "-"}</strong></span>
               </div>
             </article>
+          </section>
+
+          <section className="panel decision-panel">
+            <div className="decision-heading">
+              <div>
+                <p className="section-label">ตัวชี้วัดเพื่อการตัดสินใจ</p>
+                <h2>สัญญาณที่ควรติดตาม</h2>
+              </div>
+              <span className="period-label">{data.range ? `${formatDate(data.range.from.slice(0, 10))} — ${formatDate(data.range.to.slice(0, 10))}` : "ช่วงเวลาที่เลือก"}</span>
+            </div>
+            <div className="decision-grid">
+              <div className="decision-metric"><span>การชาร์จสั้นผิดปกติ</span><strong>{formatNumber(data.kpis.shortSessionRate, 1)}%</strong><small>{formatNumber(data.kpis.shortSessions)} ครั้งจากทั้งหมด</small></div>
+              <div className="decision-metric"><span>พลังงานเฉลี่ยต่อครั้ง</span><strong>{formatNumber(data.kpis.averageEnergyPerSession, 2)} kWh</strong><small>ใช้ดูคุณภาพและขนาดการใช้งาน</small></div>
+              <div className="decision-metric"><span>Alarm ต่อการชาร์จ</span><strong>{formatNumber(data.kpis.alarmRate, 1)}%</strong><small>{formatNumber(data.kpis.alarmEvents)} เหตุการณ์ในช่วงเวลา</small></div>
+            </div>
           </section>
 
           <section className="content-grid dashboard-panels">

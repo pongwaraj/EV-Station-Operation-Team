@@ -1,6 +1,6 @@
 # EV Station Operations Dashboard
 
-Round 1 establishes the application foundation for the Meta Mall operations dashboard.
+Production-ready Meta Mall operations dashboard for executive monitoring and controlled data intake.
 
 ## Data boundary
 
@@ -34,10 +34,10 @@ This makes it safe to upload a daily file and later upload a monthly file contai
 
 After accepted rows are written to the intake ledger, the importer also normalizes them into the operational tables: charging sessions, billing transactions, charger alarms, or status events. Station, charger, connector, and hashed customer references are created or reused automatically. A row that cannot be normalized is retained as an intake record and reported in `data_quality_issues` instead of silently disappearing.
 
-The `/dashboard` page is the first executive overview. It reads KPI and trend data from Neon for sessions, kWh, revenue, unique customers, average duration, short sessions, alarm events, peak hours, completed imports, and unresolved data-quality issues. Date filters use the station's Asia/Bangkok timezone and are converted to timestamp ranges for querying.
+The `/dashboard` page provides KPI and trend data from Neon for sessions, kWh, revenue, unique customers, average duration, short sessions, short-session rate, average energy per session, alarm events, alarm rate, peak hours, completed imports, and unresolved data-quality issues. It includes 7-, 30-, and 90-day date presets. Date filters use the station's Asia/Bangkok timezone and are converted to timestamp ranges for querying.
 
 ## Database
 
-The migrations are in `db/migrations/`. `0000_foundation.sql` creates the operational tables and `0001_import_dedup.sql` creates the timestamp-based intake ledger. Order List and Dashboard CSV can therefore be reconciled without double counting.
+The migrations are in `db/migrations/`. `0000_foundation.sql` creates the operational tables and `0001_import_dedup.sql` creates the timestamp-based intake ledger. Order List and Dashboard CSV can therefore be reconciled without double counting. Set `DATABASE_URL` in Vercel before importing production data.
 
 Do not place production Excel, CSV, V IDs, VINs or database credentials in this repository.
