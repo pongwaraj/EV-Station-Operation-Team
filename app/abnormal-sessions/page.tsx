@@ -18,9 +18,14 @@ type AbnormalSession = {
   reasonCategory: string | null;
   recoveryStatus: RecoveryStatus;
   recoveryAt: string | null;
+  recoveryEndAt: string | null;
   recoveryGapMinutes: number | null;
   recoveryDurationSeconds: number | null;
   recoveryKwh: number | null;
+  recoveryStopReason: string | null;
+  recoveryReasonCategory: string | null;
+  recoveryChargerName: string | null;
+  recoveryConnectorName: string | null;
   retryCount: number;
   alarmCount: number;
   alarmSummary: string | null;
@@ -145,16 +150,45 @@ function AbnormalSessionsContent() {
                     <span className={`recovery-badge ${item.recoveryStatus}`}>{recoveryLabels[item.recoveryStatus]}</span>
                   </summary>
                   <div className="abnormal-details">
-                    <dl>
-                      <div><dt>เริ่มชาร์จ</dt><dd>{formatDateTime(item.startAt)}</dd></div>
-                      <div><dt>หยุดชาร์จ</dt><dd>{formatDateTime(item.endAt)}</dd></div>
-                      <div><dt>สาเหตุที่บันทึก</dt><dd>{item.stopReason ?? item.reasonCategory ?? "ไม่ระบุ"}</dd></div>
-                      <div><dt>retry สั้นก่อนสำเร็จ</dt><dd>{formatNumber(item.retryCount)} ครั้ง</dd></div>
-                    </dl>
                     {item.recoveryAt ? (
-                      <div className="recovery-detail positive"><strong>{recoveryLabels[item.recoveryStatus]}</strong><span>เริ่มใหม่ {formatDateTime(item.recoveryAt)} · เว้น {formatNumber(item.recoveryGapMinutes ?? 0, 1)} นาที · {formatDuration(item.recoveryDurationSeconds)} · {formatNumber(item.recoveryKwh ?? 0, 2)} kWh</span></div>
+                      <div className="session-comparison">
+                        <article className="session-record short-record">
+                          <p className="record-label">1 · Session ชาร์จสั้นผิดปกติ</p>
+                          <dl>
+                            <div><dt>Charger / หัวชาร์จ</dt><dd>{item.chargerName} · {item.connectorName}</dd></div>
+                            <div><dt>เริ่ม / สิ้นสุด</dt><dd>{formatDateTime(item.startAt)}<br />{formatDateTime(item.endAt)}</dd></div>
+                            <div><dt>ระยะเวลา / พลังงาน</dt><dd>{formatDuration(item.durationSeconds)}<br />{formatNumber(item.energyKwh, 2)} kWh</dd></div>
+                            <div><dt>สาเหตุที่บันทึก</dt><dd>{item.stopReason ?? item.reasonCategory ?? "ไม่ระบุ"}</dd></div>
+                          </dl>
+                        </article>
+                        <div className="recovery-arrow">
+                          <strong>Recovery</strong>
+                          <span>เว้น {formatNumber(item.recoveryGapMinutes ?? 0, 1)} นาที</span>
+                          {item.retryCount > 0 && <span>retry สั้น {formatNumber(item.retryCount)} ครั้ง</span>}
+                        </div>
+                        <article className="session-record recovered-record">
+                          <p className="record-label">2 · Session กลับมาชาร์จสำเร็จ</p>
+                          <dl>
+                            <div><dt>Charger / หัวชาร์จ</dt><dd>{item.recoveryChargerName ?? "ไม่ระบุ"} · {item.recoveryConnectorName ?? "ไม่ระบุ"}</dd></div>
+                            <div><dt>เริ่ม / สิ้นสุด</dt><dd>{formatDateTime(item.recoveryAt)}<br />{formatDateTime(item.recoveryEndAt)}</dd></div>
+                            <div><dt>ระยะเวลา / พลังงาน</dt><dd>{formatDuration(item.recoveryDurationSeconds)}<br />{formatNumber(item.recoveryKwh ?? 0, 2)} kWh</dd></div>
+                            <div><dt>สาเหตุที่บันทึก</dt><dd>{item.recoveryStopReason ?? item.recoveryReasonCategory ?? "ไม่ระบุ"}</dd></div>
+                          </dl>
+                        </article>
+                      </div>
                     ) : (
-                      <div className="recovery-detail pending"><strong>ยังไม่พบการกลับมาชาร์จที่เข้าเกณฑ์</strong><span>ตรวจจากข้อมูล Meta Mall หลัง session นี้จนถึงข้อมูลล่าสุดที่นำเข้า</span></div>
+                      <>
+                        <article className="session-record short-record">
+                          <p className="record-label">Session ชาร์จสั้นผิดปกติ</p>
+                          <dl>
+                            <div><dt>Charger / หัวชาร์จ</dt><dd>{item.chargerName} · {item.connectorName}</dd></div>
+                            <div><dt>เริ่ม / สิ้นสุด</dt><dd>{formatDateTime(item.startAt)}<br />{formatDateTime(item.endAt)}</dd></div>
+                            <div><dt>ระยะเวลา / พลังงาน</dt><dd>{formatDuration(item.durationSeconds)}<br />{formatNumber(item.energyKwh, 2)} kWh</dd></div>
+                            <div><dt>สาเหตุที่บันทึก</dt><dd>{item.stopReason ?? item.reasonCategory ?? "ไม่ระบุ"}</dd></div>
+                          </dl>
+                        </article>
+                        <div className="recovery-detail pending"><strong>ยังไม่พบการกลับมาชาร์จที่เข้าเกณฑ์</strong><span>ตรวจจากข้อมูล Meta Mall หลัง session นี้จนถึงข้อมูลล่าสุดที่นำเข้า · retry สั้น {formatNumber(item.retryCount)} ครั้ง</span></div>
+                      </>
                     )}
                     {item.alarmCount > 0 && <div className="alarm-detail"><strong>Alarm ซ้อนช่วงเวลา {formatNumber(item.alarmCount)} รายการ</strong><span>{item.alarmSummary}</span></div>}
                   </div>

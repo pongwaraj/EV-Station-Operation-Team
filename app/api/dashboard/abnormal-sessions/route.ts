@@ -52,8 +52,13 @@ export async function GET(request: Request) {
         COALESCE(ch.source_name, ch.serial_number) AS charger_name,
         COALESCE(co.source_name, co.connector_no::text) AS connector_name,
         recovery.start_at AS recovery_at,
+        recovery.end_at AS recovery_end_at,
         recovery.duration_seconds AS recovery_duration_seconds,
         recovery.charging_amount_kwh AS recovery_kwh,
+        recovery.stop_reason_raw AS recovery_stop_reason_raw,
+        recovery.reason_category AS recovery_reason_category,
+        recovery.charger_name AS recovery_charger_name,
+        recovery.connector_name AS recovery_connector_name,
         retries.retry_count,
         alarms.alarm_count,
         alarms.alarm_summary
@@ -63,9 +68,19 @@ export async function GET(request: Request) {
       LEFT JOIN chargers ch ON ch.id = cs.charger_id
       LEFT JOIN connectors co ON co.id = cs.connector_id
       LEFT JOIN LATERAL (
-        SELECT ns.start_at, ns.duration_seconds, ns.charging_amount_kwh
+        SELECT
+          ns.start_at,
+          ns.end_at,
+          ns.duration_seconds,
+          ns.charging_amount_kwh,
+          ns.stop_reason_raw,
+          ns.reason_category,
+          COALESCE(next_charger.source_name, next_charger.serial_number) AS charger_name,
+          COALESCE(next_connector.source_name, next_connector.connector_no::text) AS connector_name
         FROM charging_sessions ns
         JOIN stations next_station ON next_station.id = ns.station_id
+        LEFT JOIN chargers next_charger ON next_charger.id = ns.charger_id
+        LEFT JOIN connectors next_connector ON next_connector.id = ns.connector_id
         WHERE ns.customer_identifier_id = cs.customer_identifier_id
           AND ns.start_at >= COALESCE(cs.end_at, cs.start_at)
           AND ns.duration_seconds >= 60
@@ -130,9 +145,14 @@ export async function GET(request: Request) {
         reasonCategory: event.reason_category ? String(event.reason_category) : null,
         recoveryStatus,
         recoveryAt,
+        recoveryEndAt: recoveryAt && event.recovery_end_at ? String(event.recovery_end_at) : null,
         recoveryGapMinutes: gapMinutes,
         recoveryDurationSeconds: recoveryAt ? numberValue(event.recovery_duration_seconds) : null,
         recoveryKwh: recoveryAt ? round(event.recovery_kwh, 2) : null,
+        recoveryStopReason: recoveryAt && event.recovery_stop_reason_raw ? String(event.recovery_stop_reason_raw) : null,
+        recoveryReasonCategory: recoveryAt && event.recovery_reason_category ? String(event.recovery_reason_category) : null,
+        recoveryChargerName: recoveryAt && event.recovery_charger_name ? String(event.recovery_charger_name) : null,
+        recoveryConnectorName: recoveryAt && event.recovery_connector_name ? String(event.recovery_connector_name) : null,
         retryCount: numberValue(event.retry_count),
         alarmCount: numberValue(event.alarm_count),
         alarmSummary: event.alarm_summary ? String(event.alarm_summary) : null,
