@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 type DashboardData = {
@@ -78,6 +79,13 @@ export default function DashboardPage() {
 
   const trendMax = useMemo(() => Math.max(...(data?.trend ?? []).map((item) => item.sessions), 1), [data]);
   const peak = useMemo(() => [...(data?.peakHours ?? [])].sort((a, b) => b.sessions - a.sessions)[0], [data]);
+  const abnormalSessionsHref = useMemo(() => {
+    const query = new URLSearchParams();
+    if (from) query.set("from", from);
+    if (to) query.set("to", to);
+    const suffix = query.toString();
+    return `/abnormal-sessions${suffix ? `?${suffix}` : ""}`;
+  }, [from, to]);
 
   function setDatePreset(days: number) {
     const end = new Date();
@@ -138,7 +146,7 @@ export default function DashboardPage() {
               <h2>ประเด็นที่ควรติดตาม</h2>
               <div className="metric-list">
                 <span>ระยะเวลาชาร์จเฉลี่ย <strong>{formatNumber(data.kpis.avgDurationMinutes, 1)} นาที</strong></span>
-                <span>การชาร์จสั้นผิดปกติ <strong>{formatNumber(data.kpis.shortSessions)}</strong></span>
+                <Link className="metric-action" href={abnormalSessionsHref}>การชาร์จสั้นผิดปกติ <strong>{formatNumber(data.kpis.shortSessions)}</strong><small>ดู recovery / retry</small></Link>
                 <span>เหตุการณ์ Alarm <strong>{formatNumber(data.kpis.alarmEvents)}</strong></span>
                 <span>ระยะเวลา Alarm <strong>{formatNumber(data.kpis.alarmDurationMinutes, 1)} นาที</strong></span>
                 <span>ช่วงเวลาที่ใช้งานสูงสุด <strong>{peak ? `${String(peak.hour).padStart(2, "0")}:00 น.` : "-"}</strong></span>
@@ -155,7 +163,7 @@ export default function DashboardPage() {
               <span className="period-label">{data.range ? `${formatIsoDate(data.range.from)} — ${formatIsoDate(data.range.to)}` : "ช่วงเวลาที่เลือก"}</span>
             </div>
             <div className="decision-grid">
-              <div className="decision-metric"><span>การชาร์จสั้นผิดปกติ</span><strong>{formatNumber(data.kpis.shortSessionRate, 1)}%</strong><small>{formatNumber(data.kpis.shortSessions)} ครั้งจากทั้งหมด</small></div>
+              <Link className="decision-metric decision-link" href={abnormalSessionsHref}><span>การชาร์จสั้นผิดปกติ</span><strong>{formatNumber(data.kpis.shortSessionRate, 1)}%</strong><small>{formatNumber(data.kpis.shortSessions)} ครั้งจากทั้งหมด · ดูรายละเอียด</small></Link>
               <div className="decision-metric"><span>พลังงานเฉลี่ยต่อครั้ง</span><strong>{formatNumber(data.kpis.averageEnergyPerSession, 2)} kWh</strong><small>ใช้ดูคุณภาพและขนาดการใช้งาน</small></div>
               <div className="decision-metric"><span>Alarm ต่อการชาร์จ</span><strong>{formatNumber(data.kpis.alarmRate, 1)}%</strong><small>{formatNumber(data.kpis.alarmEvents)} เหตุการณ์ในช่วงเวลา</small></div>
             </div>
