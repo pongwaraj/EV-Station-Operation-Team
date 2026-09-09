@@ -86,6 +86,13 @@ export default function DashboardPage() {
     const suffix = query.toString();
     return `/abnormal-sessions${suffix ? `?${suffix}` : ""}`;
   }, [from, to]);
+  const alarmsHref = useMemo(() => {
+    const query = new URLSearchParams();
+    if (from) query.set("from", from);
+    if (to) query.set("to", to);
+    const suffix = query.toString();
+    return `/alarms${suffix ? `?${suffix}` : ""}`;
+  }, [from, to]);
 
   function setDatePreset(days: number) {
     const end = new Date();
@@ -147,7 +154,7 @@ export default function DashboardPage() {
               <div className="metric-list">
                 <span>ระยะเวลาชาร์จเฉลี่ย <strong>{formatNumber(data.kpis.avgDurationMinutes, 1)} นาที</strong></span>
                 <Link className="metric-action" href={abnormalSessionsHref}>การชาร์จสั้นผิดปกติ <strong>{formatNumber(data.kpis.shortSessions)}</strong><small>ดู recovery / retry</small></Link>
-                <span>เหตุการณ์ Alarm <strong>{formatNumber(data.kpis.alarmEvents)}</strong></span>
+                <Link className="metric-action" href={alarmsHref}>เหตุการณ์ Alarm <strong>{formatNumber(data.kpis.alarmEvents)}</strong><small>ดูวันเวลาและรายละเอียด</small></Link>
                 <span>ระยะเวลา Alarm <strong>{formatNumber(data.kpis.alarmDurationMinutes, 1)} นาที</strong></span>
                 <span>ช่วงเวลาที่ใช้งานสูงสุด <strong>{peak ? `${String(peak.hour).padStart(2, "0")}:00 น.` : "-"}</strong></span>
               </div>
@@ -165,7 +172,7 @@ export default function DashboardPage() {
             <div className="decision-grid">
               <Link className="decision-metric decision-link" href={abnormalSessionsHref}><span>การชาร์จสั้นผิดปกติ</span><strong>{formatNumber(data.kpis.shortSessionRate, 1)}%</strong><small>{formatNumber(data.kpis.shortSessions)} ครั้งจากทั้งหมด · ดูรายละเอียด</small></Link>
               <div className="decision-metric"><span>พลังงานเฉลี่ยต่อครั้ง</span><strong>{formatNumber(data.kpis.averageEnergyPerSession, 2)} kWh</strong><small>ใช้ดูคุณภาพและขนาดการใช้งาน</small></div>
-              <div className="decision-metric"><span>Alarm ต่อการชาร์จ</span><strong>{formatNumber(data.kpis.alarmRate, 1)}%</strong><small>{formatNumber(data.kpis.alarmEvents)} เหตุการณ์ในช่วงเวลา</small></div>
+              <Link className="decision-metric decision-link" href={alarmsHref}><span>Alarm ต่อการชาร์จ</span><strong>{formatNumber(data.kpis.alarmRate, 1)}%</strong><small>{formatNumber(data.kpis.alarmEvents)} เหตุการณ์ในช่วงเวลา · ดูรายละเอียด</small></Link>
             </div>
           </section>
 

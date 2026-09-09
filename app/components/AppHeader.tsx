@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 const links = [
   { href: "/dashboard", label: "ภาพรวม" },
   { href: "/abnormal-sessions", label: "ตรวจสอบความผิดปกติ" },
+  { href: "/alarms", label: "Alarm" },
   { href: "/imports", label: "นำเข้าข้อมูล" },
 ];
 
