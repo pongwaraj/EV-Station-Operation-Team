@@ -60,6 +60,14 @@ export function normaliseValue(value: unknown) {
   return String(value).trim().replace(/\s+/g, " ").toLowerCase();
 }
 
+export function canonicalStationName(value: unknown) {
+  const normalized = normaliseValue(value);
+  if (normalized.includes("meta mall") || normalized.includes("เมต้า มอลล์")) {
+    return "tce ev station @meta mall";
+  }
+  return normalized;
+}
+
 function stableJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
   if (value && typeof value === "object") {
@@ -141,7 +149,7 @@ export function prepareRows(rows: RawRow[], sourceType: ImportSourceType): Prepa
 
   return rows.map((rawRow, index) => {
     const timestamp = parseTimestamp(firstValue(rawRow, aliases.timestamp));
-    const stationKey = normaliseValue(firstValue(rawRow, aliases.station)) || null;
+    const stationKey = canonicalStationName(firstValue(rawRow, aliases.station)) || null;
     const orderKey = normaliseValue(firstValue(rawRow, aliases.order));
     const customerKey = normaliseValue(firstValue(rawRow, aliases.customer));
     const chargerKey = normaliseValue(firstValue(rawRow, aliases.charger));
@@ -159,11 +167,10 @@ export function prepareRows(rows: RawRow[], sourceType: ImportSourceType): Prepa
     ]
       .filter(Boolean)
       .join("|");
-    // Order lists have a stable order number. Other exports may only contain a
-    // date and customer/device fields, so keep the row fingerprint in the key
-    // to distinguish legitimate same-day repeat usage while still collapsing
-    // exact duplicates.
-    const identityKey = orderKey ? detailKey : `${detailKey}|${contentHash}`;
+    // With full timestamps, the event time distinguishes legitimate same-day
+    // repeat usage. Keeping the identity independent from the full row content
+    // also lets overlapping monthly exports deduplicate reliably.
+    const identityKey = detailKey;
     const sourceRecordKey = timestamp ? sha256([sourceType, stationKey ?? "", timestampKey, identityKey].join("|")) : null;
     const duplicateInFile = sourceRecordKey ? seen.has(sourceRecordKey) : false;
     if (sourceRecordKey) seen.add(sourceRecordKey);
@@ -188,7 +195,7 @@ export async function parseUpload(file: File, sourceType: ImportSourceType) {
   const workbook = XLSX.read(bytes, { type: "array", cellDates: true, raw: false });
   const firstSheet = workbook.SheetNames[0];
   if (!firstSheet) throw new Error("ไม่พบ worksheet ในไฟล์");
-  const rows = XLSX.utils.sheet_to_json<RawRow>(workbook.Sheets[firstSheet], { defval: null, raw: false });
+  const rows = XLSX.utils.sheet_to_json<RawRow>(workbook.Sheets[firstSheet], { defval: null, raw: true });
   return {
     fileSha256: sha256(Buffer.from(bytes)),
     sheetName: firstSheet,

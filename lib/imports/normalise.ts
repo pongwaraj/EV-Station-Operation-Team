@@ -11,7 +11,7 @@ import {
   stations,
   statusEvents,
 } from "../db/schema";
-import { firstValue, normaliseValue, parseTimestamp, sha256, type ImportSourceType, type PreparedRow, type RawRow } from "./intake";
+import { canonicalStationName, firstValue, normaliseValue, parseTimestamp, sha256, type ImportSourceType, type PreparedRow, type RawRow } from "./intake";
 
 type Db = ReturnType<typeof getDb>;
 
@@ -50,6 +50,15 @@ function integer(row: RawRow, names: string[]) {
   return Number.isFinite(parsed) ? Math.round(parsed) : null;
 }
 
+function durationSeconds(row: RawRow, names: string[]) {
+  const value = text(row, names);
+  if (!value) return null;
+  const duration = value.match(/^(\d+):(\d{2}):(\d{2})$/);
+  if (duration) return Number(duration[1]) * 3600 + Number(duration[2]) * 60 + Number(duration[3]);
+  const parsed = Number(value.replace(/,/g, ""));
+  return Number.isFinite(parsed) ? Math.round(parsed) : null;
+}
+
 function decimal(row: RawRow, names: string[]) {
   const value = text(row, names);
   if (!value) return null;
@@ -63,7 +72,7 @@ function mask(value: string) {
 
 async function ensureStation(db: Db, rawStation: string | null) {
   const sourceName = rawStation || "unknown station";
-  const canonicalName = normaliseValue(sourceName);
+  const canonicalName = canonicalStationName(sourceName);
   const found = await db.select({ id: stations.id }).from(stations).where(eq(stations.canonicalName, canonicalName)).limit(1);
   if (found[0]) return found[0].id;
   const inserted = await db
@@ -169,7 +178,7 @@ async function normaliseOneRow(db: Db, sourceType: ImportSourceType, row: Prepar
       customerIdentifierId: assets.customerIdentifierId,
       startAt,
       endAt,
-      durationSeconds: integer(row.rawRow, fields.duration),
+      durationSeconds: durationSeconds(row.rawRow, fields.duration),
       beginSoc: integer(row.rawRow, fields.beginSoc),
       endSoc: integer(row.rawRow, fields.endSoc),
       chargingAmountKwh: decimal(row.rawRow, fields.amount),
@@ -190,7 +199,7 @@ async function normaliseOneRow(db: Db, sourceType: ImportSourceType, row: Prepar
       serviceDate: startAt,
       startAt,
       endAt,
-      durationSeconds: integer(row.rawRow, fields.duration),
+      durationSeconds: durationSeconds(row.rawRow, fields.duration),
       chargingAmountKwh: decimal(row.rawRow, fields.amount),
       revenueThb: decimal(row.rawRow, fields.revenue),
       sourceRowNumber: row.rowNumber,

@@ -32,6 +32,10 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat("th-TH", { day: "2-digit", month: "short" }).format(new Date(`${value}T00:00:00+07:00`));
 }
 
+function formatIsoDate(value: string) {
+  return new Intl.DateTimeFormat("th-TH", { day: "2-digit", month: "short", timeZone: "Asia/Bangkok" }).format(new Date(value));
+}
+
 function formatInputDate(date: Date) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
 }
@@ -43,13 +47,12 @@ export default function DashboardPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const loadDashboard = useCallback(async (event?: FormEvent) => {
-    event?.preventDefault();
+  const fetchDashboard = useCallback(async (start: string, end: string) => {
     setLoading(true);
     setError("");
     const query = new URLSearchParams();
-    if (from) query.set("from", from);
-    if (to) query.set("to", to);
+    if (start) query.set("from", start);
+    if (end) query.set("to", end);
     try {
       const response = await fetch(`/api/dashboard/overview?${query.toString()}`);
       const result = (await response.json()) as DashboardData;
@@ -61,12 +64,17 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [from, to]);
+  }, []);
+
+  const loadDashboard = useCallback(async (event?: FormEvent) => {
+    event?.preventDefault();
+    await fetchDashboard(from, to);
+  }, [fetchDashboard, from, to]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => { void loadDashboard(); }, 0);
+    const timer = window.setTimeout(() => { void fetchDashboard("", ""); }, 0);
     return () => window.clearTimeout(timer);
-  }, [loadDashboard]);
+  }, [fetchDashboard]);
 
   const trendMax = useMemo(() => Math.max(...(data?.trend ?? []).map((item) => item.sessions), 1), [data]);
   const peak = useMemo(() => [...(data?.peakHours ?? [])].sort((a, b) => b.sessions - a.sessions)[0], [data]);
@@ -144,7 +152,7 @@ export default function DashboardPage() {
                 <p className="section-label">ตัวชี้วัดเพื่อการตัดสินใจ</p>
                 <h2>สัญญาณที่ควรติดตาม</h2>
               </div>
-              <span className="period-label">{data.range ? `${formatDate(data.range.from.slice(0, 10))} — ${formatDate(data.range.to.slice(0, 10))}` : "ช่วงเวลาที่เลือก"}</span>
+              <span className="period-label">{data.range ? `${formatIsoDate(data.range.from)} — ${formatIsoDate(data.range.to)}` : "ช่วงเวลาที่เลือก"}</span>
             </div>
             <div className="decision-grid">
               <div className="decision-metric"><span>การชาร์จสั้นผิดปกติ</span><strong>{formatNumber(data.kpis.shortSessionRate, 1)}%</strong><small>{formatNumber(data.kpis.shortSessions)} ครั้งจากทั้งหมด</small></div>
