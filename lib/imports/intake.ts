@@ -144,12 +144,14 @@ function sanitiseRow(row: RawRow): RawRow {
   return Object.fromEntries(Object.entries(row).map(([key, value]) => [key, isSensitiveKey(key) ? redactValue(value) : value]));
 }
 
-export function prepareRows(rows: RawRow[], sourceType: ImportSourceType): PreparedRow[] {
+export function prepareRows(rows: RawRow[], sourceType: ImportSourceType, eventRows = rows): PreparedRow[] {
   const seen = new Set<string>();
 
   return rows.map((rawRow, index) => {
+    const eventRow = eventRows[index] ?? rawRow;
     const timestamp = parseTimestamp(firstValue(rawRow, aliases.timestamp));
-    const stationKey = canonicalStationName(firstValue(rawRow, aliases.station)) || null;
+    const eventTimestamp = parseTimestamp(firstValue(eventRow, aliases.timestamp));
+    const stationKey = normaliseValue(firstValue(rawRow, aliases.station)) || null;
     const orderKey = normaliseValue(firstValue(rawRow, aliases.order));
     const customerKey = normaliseValue(firstValue(rawRow, aliases.customer));
     const chargerKey = normaliseValue(firstValue(rawRow, aliases.charger));
@@ -167,24 +169,24 @@ export function prepareRows(rows: RawRow[], sourceType: ImportSourceType): Prepa
     ]
       .filter(Boolean)
       .join("|");
-    // With full timestamps, the event time distinguishes legitimate same-day
-    // repeat usage. Keeping the identity independent from the full row content
-    // also lets overlapping monthly exports deduplicate reliably.
-    const identityKey = detailKey;
+    // Keep the original intake identity for compatibility with rows already
+    // stored in the ledger. The event timestamp used by normalized tables can
+    // still retain the full time from the raw worksheet.
+    const identityKey = orderKey ? detailKey : `${detailKey}|${contentHash}`;
     const sourceRecordKey = timestamp ? sha256([sourceType, stationKey ?? "", timestampKey, identityKey].join("|")) : null;
     const duplicateInFile = sourceRecordKey ? seen.has(sourceRecordKey) : false;
     if (sourceRecordKey) seen.add(sourceRecordKey);
 
     return {
       rowNumber: index + 2,
-      rawRow,
-      sanitizedRow: sanitiseRow(rawRow),
+      rawRow: eventRow,
+      sanitizedRow: sanitiseRow(eventRow),
       sourceRecordKey,
       contentHash,
-      eventTimestamp: timestamp,
+      eventTimestamp,
       stationKey,
       entityKey,
-      ...(timestamp ? {} : { invalidReason: "ไม่พบ timestamp ที่ใช้ตรวจสอบรายการซ้ำ" }),
+      ...(eventTimestamp ? {} : { invalidReason: "ไม่พบ timestamp ที่ใช้ตรวจสอบรายการซ้ำ" }),
       ...(duplicateInFile ? { invalidReason: "รายการซ้ำภายในไฟล์เดียวกัน" } : {}),
     };
   });
@@ -195,11 +197,12 @@ export async function parseUpload(file: File, sourceType: ImportSourceType) {
   const workbook = XLSX.read(bytes, { type: "array", cellDates: true, raw: false });
   const firstSheet = workbook.SheetNames[0];
   if (!firstSheet) throw new Error("ไม่พบ worksheet ในไฟล์");
-  const rows = XLSX.utils.sheet_to_json<RawRow>(workbook.Sheets[firstSheet], { defval: null, raw: true });
+  const identityRows = XLSX.utils.sheet_to_json<RawRow>(workbook.Sheets[firstSheet], { defval: null, raw: false });
+  const eventRows = XLSX.utils.sheet_to_json<RawRow>(workbook.Sheets[firstSheet], { defval: null, raw: true });
   return {
     fileSha256: sha256(Buffer.from(bytes)),
     sheetName: firstSheet,
-    rows: prepareRows(rows, sourceType),
+    rows: prepareRows(identityRows, sourceType, eventRows),
   };
 }
 
