@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const links = [
+  { href: "/snapshot", label: "Snapshot ผู้บริหาร" },
   { href: "/dashboard", label: "ภาพรวม" },
   { href: "/abnormal-sessions", label: "ตรวจสอบความผิดปกติ" },
   { href: "/alarms", label: "Alarm" },
