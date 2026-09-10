@@ -135,7 +135,7 @@ export default function DashboardPage() {
           <section className="grid kpi-grid">
             <article className="card"><p className="card-label">จำนวนการชาร์จ</p><p className="kpi-value">{formatNumber(data.kpis.sessions)}</p></article>
             <article className="card"><p className="card-label">พลังงานที่จ่าย</p><p className="kpi-value">{formatNumber(data.kpis.energyKwh, 1)} <small>kWh</small></p></article>
-            <article className="card"><p className="card-label">รายได้จากการชาร์จ</p><p className="kpi-value">฿{formatNumber(data.kpis.revenueThb, 0)}</p></article>
+            <article className="card"><p className="card-label">รายได้จากการชาร์จ <small>(7.90 บาท/kWh)</small></p><p className="kpi-value">฿{formatNumber(data.kpis.revenueThb, 0)}</p></article>
             <article className="card"><p className="card-label">ลูกค้าที่ใช้งาน</p><p className="kpi-value">{formatNumber(data.kpis.uniqueCustomers)}</p></article>
           </section>
 
