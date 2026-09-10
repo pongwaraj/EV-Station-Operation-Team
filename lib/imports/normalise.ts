@@ -36,6 +36,28 @@ const fields = {
   alarmCode: ["alarm code", "alarm_code", "code", "告警码", "故障码"],
   alarmReason: ["alarm reason", "alarm_reason", "reason", "告警原因", "故障原因"],
   status: ["status", "alarm status", "state", "状态"],
+  country: ["country"],
+  city: ["city"],
+  address: ["dtailed address", "detailed address", "address"],
+  longitude: ["longitude", "long"],
+  latitude: ["latitude", "lat"],
+  customerName: ["customer name"],
+  acChargerCount: ["ac charger number", "ac charger count"],
+  dcChargerCount: ["dc charger number", "dc charger count"],
+  acOnlineCount: ["ac charger online", "ac online count"],
+  dcOnlineCount: ["dc charger online", "dc online count"],
+  totalPowerKw: ["total power(kw)", "total power kw", "total power"],
+  onlineDate: ["online date"],
+  outputType: ["output type"],
+  powerKw: ["power(kw)", "power kw", "power"],
+  chargerModel: ["charger model", "model"],
+  mcuVersion: ["mcu ver.", "mcu version"],
+  ccuVersion: ["ccu ver.", "ccu version"],
+  lastHeartbeat: ["last heartbeat time", "last heartbeat"],
+  productVersion: ["product version"],
+  productCategory: ["product category"],
+  productType: ["product type"],
+  connectorCount: ["connector number", "connector count"],
 };
 
 function text(row: RawRow, names: string[]) {
@@ -66,6 +88,21 @@ function decimal(row: RawRow, names: string[]) {
   return Number.isFinite(parsed) ? parsed.toFixed(4) : null;
 }
 
+function dateOnly(row: RawRow, names: string[]) {
+  const value = text(row, names);
+  if (!value) return null;
+  const iso = value.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (iso) return `${iso[1]}-${iso[2].padStart(2, "0")}-${iso[3].padStart(2, "0")}`;
+  const monthNames: Record<string, string> = { jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06", jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12" };
+  const named = value.match(/(?:mon|tue|wed|thu|fri|sat|sun)\s+([a-z]{3})\s+(\d{1,2})\s+.*?(\d{4})/i) ?? value.match(/^([a-z]{3})\s+(\d{1,2})\s+.*?(\d{4})/i);
+  if (named) {
+    const month = monthNames[named[1].toLowerCase()];
+    if (month) return `${named[3]}-${month}-${named[2].padStart(2, "0")}`;
+  }
+  const parsed = parseTimestamp(value);
+  return parsed ? parsed.toISOString().slice(0, 10) : null;
+}
+
 function mask(value: string) {
   return value.length <= 4 ? "***" : `${value.slice(0, 2)}***${value.slice(-2)}`;
 }
@@ -86,6 +123,23 @@ async function ensureStation(db: Db, rawStation: string | null) {
   return retried[0].id;
 }
 
+async function updateStationMaster(db: Db, stationId: string, row: RawRow) {
+  await db.update(stations).set({
+    country: text(row, fields.country),
+    city: text(row, fields.city),
+    address: text(row, fields.address),
+    longitude: decimal(row, fields.longitude),
+    latitude: decimal(row, fields.latitude),
+    customerName: text(row, fields.customerName),
+    acChargerCount: integer(row, fields.acChargerCount),
+    dcChargerCount: integer(row, fields.dcChargerCount),
+    acOnlineCount: integer(row, fields.acOnlineCount),
+    dcOnlineCount: integer(row, fields.dcOnlineCount),
+    totalPowerKw: decimal(row, fields.totalPowerKw),
+    onlineDate: dateOnly(row, fields.onlineDate),
+  }).where(eq(stations.id, stationId));
+}
+
 async function ensureCharger(db: Db, stationId: string, rawCharger: string | null, fallback: string) {
   const serialNumber = normaliseValue(rawCharger || fallback || "unknown charger");
   const found = await db.select({ id: chargers.id }).from(chargers).where(eq(chargers.serialNumber, serialNumber)).limit(1);
@@ -99,6 +153,25 @@ async function ensureCharger(db: Db, stationId: string, rawCharger: string | nul
   const retried = await db.select({ id: chargers.id }).from(chargers).where(eq(chargers.serialNumber, serialNumber)).limit(1);
   if (!retried[0]) throw new Error(`สร้าง charger ไม่สำเร็จ: ${serialNumber}`);
   return retried[0].id;
+}
+
+async function updateChargerMaster(db: Db, chargerId: string, row: RawRow) {
+  await db.update(chargers).set({
+    outputType: text(row, fields.outputType),
+    powerKw: decimal(row, fields.powerKw),
+    chargerModel: text(row, fields.chargerModel),
+    country: text(row, fields.country),
+    city: text(row, fields.city),
+    mcuVersion: text(row, fields.mcuVersion),
+    ccuVersion: text(row, fields.ccuVersion),
+    status: text(row, fields.status),
+    onlineDate: dateOnly(row, fields.onlineDate),
+    lastHeartbeatRaw: text(row, fields.lastHeartbeat),
+    productVersion: text(row, fields.productVersion),
+    productCategory: text(row, fields.productCategory),
+    productType: text(row, fields.productType),
+    connectorCount: integer(row, fields.connectorCount),
+  }).where(eq(chargers.id, chargerId));
 }
 
 function textFromFallback(value: string | null) {
@@ -161,7 +234,24 @@ async function ensureAssets(db: Db, row: PreparedRow) {
 }
 
 async function normaliseOneRow(db: Db, sourceType: ImportSourceType, row: PreparedRow, importId: string) {
-  if (!row.eventTimestamp || !row.sourceRecordKey) throw new Error("ไม่พบ timestamp หรือ source key");
+  const isMasterSource = sourceType === "station_info" || sourceType === "device_management";
+  if ((!row.eventTimestamp && !isMasterSource) || !row.sourceRecordKey) throw new Error("ไม่พบ timestamp หรือ source key");
+  if (sourceType === "station_info") {
+    const stationId = await ensureStation(db, text(row.rawRow, fields.station));
+    await updateStationMaster(db, stationId, row.rawRow);
+    return;
+  }
+  if (sourceType === "device_management") {
+    const stationId = await ensureStation(db, text(row.rawRow, fields.station));
+    const chargerId = await ensureCharger(db, stationId, text(row.rawRow, fields.charger), row.entityKey ?? "unknown charger");
+    await updateChargerMaster(db, chargerId, row.rawRow);
+    const connectorCount = integer(row.rawRow, fields.connectorCount) ?? 0;
+    for (let connectorNo = 1; connectorNo <= connectorCount; connectorNo += 1) {
+      await ensureConnector(db, chargerId, String(connectorNo));
+    }
+    return;
+  }
+  if (!row.eventTimestamp) throw new Error("ไม่พบ timestamp หรือ source key");
   const assets = await ensureAssets(db, row);
   const startAt = row.eventTimestamp;
   const endAt = parseTimestamp(firstValue(row.rawRow, fields.end));

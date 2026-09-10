@@ -40,7 +40,10 @@ export async function POST(request: Request) {
       }
     }
 
-    const timestamps = validRows.map((row) => row.eventTimestamp as Date).sort((a, b) => a.getTime() - b.getTime());
+    const timestamps = validRows
+      .map((row) => row.eventTimestamp)
+      .filter((timestamp): timestamp is Date => Boolean(timestamp))
+      .sort((a, b) => a.getTime() - b.getTime());
     return Response.json({
       fileName: file.name,
       fileSha256: parsed.fileSha256,

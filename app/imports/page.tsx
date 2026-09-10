@@ -2,7 +2,7 @@
 
 import { ChangeEvent, FormEvent, useState } from "react";
 
-type SourceType = "charging_sessions" | "billing_transactions" | "charger_alarms" | "status_events";
+type SourceType = "charging_sessions" | "billing_transactions" | "charger_alarms" | "status_events" | "station_info" | "device_management";
 type Report = {
   message?: string;
   fileName?: string;
@@ -27,6 +27,8 @@ const sourceOptions: Array<{ value: SourceType; label: string }> = [
   { value: "billing_transactions", label: "ยอดใช้งานและรายได้" },
   { value: "charger_alarms", label: "ประวัติ Alarm" },
   { value: "status_events", label: "สถานะการทำงาน" },
+  { value: "station_info", label: "ข้อมูลสถานี (Station Info)" },
+  { value: "device_management", label: "ข้อมูลอุปกรณ์ (Device Management)" },
 ];
 
 function displayDate(value: string | null | undefined) {
@@ -126,7 +128,7 @@ export default function ImportsPage() {
               {report.status === "completed" || report.status === "completed_with_warnings" ? <span>บันทึกข้อมูลแล้ว <strong>{report.normalizedRows ?? 0}</strong></span> : null}
               <span>ซ้ำในไฟล์ <strong>{report.duplicateWithinFile ?? 0}</strong></span>
               <span>ข้อมูลซ้ำที่มีอยู่แล้ว <strong>{report.duplicateInDatabase ?? report.duplicateRows ?? 0}</strong></span>
-              <span>ไม่ผ่าน timestamp <strong>{report.invalidRows ?? 0}</strong></span>
+              <span>ไม่ผ่านการตรวจสอบ <strong>{report.invalidRows ?? 0}</strong></span>
             </div>
             <p className="hint">ช่วงข้อมูล: {displayDate(report.periodStart)} — {displayDate(report.periodEnd)}</p>
             {(report.status === "completed" || report.status === "completed_with_warnings") && <p className="success-box">{report.message}</p>}

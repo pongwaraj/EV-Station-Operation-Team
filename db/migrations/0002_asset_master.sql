@@ -1,0 +1,26 @@
+ALTER TABLE "stations" ADD COLUMN IF NOT EXISTS "country" text;
+ALTER TABLE "stations" ADD COLUMN IF NOT EXISTS "address" text;
+ALTER TABLE "stations" ADD COLUMN IF NOT EXISTS "longitude" numeric(12,7);
+ALTER TABLE "stations" ADD COLUMN IF NOT EXISTS "latitude" numeric(12,7);
+ALTER TABLE "stations" ADD COLUMN IF NOT EXISTS "customer_name" text;
+ALTER TABLE "stations" ADD COLUMN IF NOT EXISTS "ac_charger_count" integer;
+ALTER TABLE "stations" ADD COLUMN IF NOT EXISTS "dc_charger_count" integer;
+ALTER TABLE "stations" ADD COLUMN IF NOT EXISTS "ac_online_count" integer;
+ALTER TABLE "stations" ADD COLUMN IF NOT EXISTS "dc_online_count" integer;
+ALTER TABLE "stations" ADD COLUMN IF NOT EXISTS "total_power_kw" numeric(12,4);
+ALTER TABLE "stations" ADD COLUMN IF NOT EXISTS "online_date" date;
+
+ALTER TABLE "chargers" ADD COLUMN IF NOT EXISTS "output_type" text;
+ALTER TABLE "chargers" ADD COLUMN IF NOT EXISTS "power_kw" numeric(12,4);
+ALTER TABLE "chargers" ADD COLUMN IF NOT EXISTS "charger_model" text;
+ALTER TABLE "chargers" ADD COLUMN IF NOT EXISTS "country" text;
+ALTER TABLE "chargers" ADD COLUMN IF NOT EXISTS "city" text;
+ALTER TABLE "chargers" ADD COLUMN IF NOT EXISTS "mcu_version" text;
+ALTER TABLE "chargers" ADD COLUMN IF NOT EXISTS "ccu_version" text;
+ALTER TABLE "chargers" ADD COLUMN IF NOT EXISTS "status" text;
+ALTER TABLE "chargers" ADD COLUMN IF NOT EXISTS "online_date" date;
+ALTER TABLE "chargers" ADD COLUMN IF NOT EXISTS "last_heartbeat_raw" text;
+ALTER TABLE "chargers" ADD COLUMN IF NOT EXISTS "product_version" text;
+ALTER TABLE "chargers" ADD COLUMN IF NOT EXISTS "product_category" text;
+ALTER TABLE "chargers" ADD COLUMN IF NOT EXISTS "product_type" text;
+ALTER TABLE "chargers" ADD COLUMN IF NOT EXISTS "connector_count" integer;

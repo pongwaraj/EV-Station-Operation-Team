@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import * as XLSX from "xlsx";
 
-export type ImportSourceType = "charging_sessions" | "billing_transactions" | "charger_alarms" | "status_events";
+export type ImportSourceType = "charging_sessions" | "billing_transactions" | "charger_alarms" | "status_events" | "station_info" | "device_management";
 export type RawRow = Record<string, unknown>;
 
 export type PreparedRow = {
@@ -32,6 +32,7 @@ const aliases = {
     "timestamp",
     "alarm start time",
     "start date",
+    "online date",
     "开始时间",
     "开始充电时间",
     "日期",
@@ -41,7 +42,7 @@ const aliases = {
   order: ["order no", "order_no", "order number", "order id", "order_id", "订单号"],
   customer: ["v id", "v_id", "vid", "vcard", "vehicle id", "vehicle_id", "vin", "vehicle vin", "card number user id", "rfid", "用户id", "客户id"],
   charger: ["charger", "charger name", "charger serial", "charger sn", "charger number", "serial number", "sn", "ชื่อเครื่องอัดประจุ", "设备序列号", "充电桩"],
-  connector: ["connector", "connector no", "connector_no", "หัวชาร์จ", "枪口", "充电枪"],
+  connector: ["connector", "connector no", "connector_no", "connector number", "หัวชาร์จ", "枪口", "充电枪"],
   alarmCode: ["alarm code", "alarm_code", "code", "告警码", "故障码"],
   status: ["status", "alarm status", "state", "状态"],
 };
@@ -129,7 +130,7 @@ export function parseTimestamp(value: unknown): Date | null {
 
 function isSensitiveKey(key: string) {
   const header = normaliseHeader(key).replace(/ /g, "");
-  return ["vid", "vehicleid", "vin", "rfid", "cardno", "cardnumber", "phone", "mobile", "customerid", "userid"].some(
+  return ["vid", "vehicleid", "vin", "rfid", "cardno", "cardnumber", "phone", "mobile", "customerid", "userid", "aftersaleslead", "email"].some(
     (token) => header.includes(token),
   );
 }
@@ -146,6 +147,7 @@ function sanitiseRow(row: RawRow): RawRow {
 
 export function prepareRows(rows: RawRow[], sourceType: ImportSourceType, eventRows = rows): PreparedRow[] {
   const seen = new Set<string>();
+  const isMasterSource = sourceType === "station_info" || sourceType === "device_management";
 
   return rows.map((rawRow, index) => {
     const eventRow = eventRows[index] ?? rawRow;
@@ -173,7 +175,11 @@ export function prepareRows(rows: RawRow[], sourceType: ImportSourceType, eventR
     // stored in the ledger. The event timestamp used by normalized tables can
     // still retain the full time from the raw worksheet.
     const identityKey = orderKey ? detailKey : `${detailKey}|${contentHash}`;
-    const sourceRecordKey = timestamp ? sha256([sourceType, stationKey ?? "", timestampKey, identityKey].join("|")) : null;
+    const sourceRecordKey = isMasterSource
+      ? sha256([sourceType, stationKey ?? "", entityKey ?? "", contentHash].join("|"))
+      : timestamp
+        ? sha256([sourceType, stationKey ?? "", timestampKey, identityKey].join("|"))
+        : null;
     const duplicateInFile = sourceRecordKey ? seen.has(sourceRecordKey) : false;
     if (sourceRecordKey) seen.add(sourceRecordKey);
 
@@ -186,7 +192,7 @@ export function prepareRows(rows: RawRow[], sourceType: ImportSourceType, eventR
       eventTimestamp,
       stationKey,
       entityKey,
-      ...(eventTimestamp ? {} : { invalidReason: "ไม่พบ timestamp ที่ใช้ตรวจสอบรายการซ้ำ" }),
+      ...(!eventTimestamp && !isMasterSource ? { invalidReason: "ไม่พบ timestamp ที่ใช้ตรวจสอบรายการซ้ำ" } : {}),
       ...(duplicateInFile ? { invalidReason: "รายการซ้ำภายในไฟล์เดียวกัน" } : {}),
     };
   });
@@ -207,5 +213,5 @@ export async function parseUpload(file: File, sourceType: ImportSourceType) {
 }
 
 export function importSourceTypes(): ImportSourceType[] {
-  return ["charging_sessions", "billing_transactions", "charger_alarms", "status_events"];
+  return ["charging_sessions", "billing_transactions", "charger_alarms", "status_events", "station_info", "device_management"];
 }
