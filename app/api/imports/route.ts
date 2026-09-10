@@ -1,5 +1,6 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { getDb } from "../../../lib/db/client";
+import { ensureAssetMasterSchema } from "../../../lib/db/asset-master";
 import { dataImports, dataQualityIssues, importRows } from "../../../lib/db/schema";
 import { importSourceTypes, parseUpload, type ImportSourceType } from "../../../lib/imports/intake";
 import { normaliseImportedRows } from "../../../lib/imports/normalise";
@@ -29,6 +30,9 @@ export async function POST(request: Request) {
 
     const parsed = await parseUpload(file, sourceType);
     const db = getDb();
+    if (sourceType === "station_info" || sourceType === "device_management") {
+      await ensureAssetMasterSchema(db);
+    }
     const existingFile = await db
       .select({ id: dataImports.id, status: dataImports.status })
       .from(dataImports)
