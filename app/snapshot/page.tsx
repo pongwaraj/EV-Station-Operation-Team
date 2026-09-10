@@ -3,6 +3,7 @@
 import "./snapshot.css";
 
 import Image from "next/image";
+import HourlyComparison from "../components/HourlyComparison";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -62,6 +63,7 @@ export default function SnapshotPage() {
         {[{ label: "การชาร์จทั้งหมด", value: fmt(k.sessions), unit: "ครั้ง", comparison: delta(k.sessions, report.baseline.kpis.sessions) }, { label: "พลังงานที่จ่าย", value: fmt(k.energyKwh, 1), unit: "kWh", comparison: delta(k.energyKwh, report.baseline.kpis.energyKwh) }, { label: "รายได้คำนวณ", value: fmt(k.revenueThb), unit: "บาท", comparison: delta(k.revenueThb, report.baseline.kpis.revenueThb) }, { label: "ผู้ใช้งานไม่ซ้ำ", value: fmt(k.uniqueCustomers), unit: "รหัส", comparison: "ตามรหัสลูกค้าในระบบ" }].map(m => <div key={m.label}><span>{m.label}</span><strong>{m.value} <small>{m.unit}</small></strong><small>{m.comparison}</small></div>)}
       </section>
       <p className="snapshot-strip">เฉลี่ย {fmt(k.averageEnergyPerSession, 1)} kWh/ครั้ง · {fmt(k.avgDurationMinutes, 1)} นาที/ครั้ง · ช่วงเริ่มชาร์จสูงสุด {peak ? `${String(peak.hour).padStart(2, "0")}:00–${String(peak.hour).padStart(2, "0")}:59 น. (${peak.sessions} ครั้ง)` : "ไม่มีข้อมูล"}</p>
+      <HourlyComparison current={report.overview.peakHours} baseline={report.baseline.peakHours} />
       <div className="snapshot-columns">
         <section><h2>ประสบการณ์ลูกค้า</h2><p className="snapshot-big">{k.shortSessions} <small>ชาร์จสั้น / {k.sessions} ครั้ง ({fmt(k.shortSessionRate, 1)}%)</small></p><dl><div><dt>กลับมาสำเร็จภายในวัน</dt><dd>{sameDay} เหตุการณ์</dd></div><div><dt>ในจำนวนนี้ ภายใน 5 นาที</dt><dd>{items.filter(i => i.recoveryAt && day(new Date(i.recoveryAt)) === report.date && (i.recoveryGapMinutes ?? Infinity) <= 5).length}</dd></div><div><dt>กลับมาสำเร็จหลังวันรายงาน</dt><dd>{later}</dd></div><div><dt>ยังไม่พบกลับมาสำเร็จ</dt><dd>{noRecovery}</dd></div></dl>
         {items.length === 1 && items[0].recoveryAt && <p className="snapshot-note">เคสที่พบกลับมาชาร์จ{items[0].recoveryPath === "same_connector" ? "หัวเดิม" : "อีกครั้ง"}ใน {fmt(items[0].recoveryGapMinutes ?? 0, 1)} นาที จ่ายพลังงาน {fmt(items[0].recoveryKwh ?? 0, 2)} kWh</p>}

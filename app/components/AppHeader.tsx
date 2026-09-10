@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import ThemePicker from "./ThemePicker";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -49,6 +50,7 @@ export default function AppHeader() {
           ))}
         </nav>
         <div className="workspace-station"><span className="section-label">สถานีที่เลือก</span><strong>Meta Mall</strong><small>ข้อมูลจากรายการที่นำเข้า</small></div>
+        <ThemePicker />
         <span className={`system-pill ${health}`}><span className="system-dot" aria-hidden="true" />{health === "ready" ? "ข้อมูลพร้อมใช้งาน" : health === "pending" ? "รอเชื่อมต่อข้อมูล" : "กำลังตรวจสอบ"}</span>
       </div>
     </header>
