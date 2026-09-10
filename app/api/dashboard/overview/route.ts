@@ -48,7 +48,8 @@ export async function GET(request: Request) {
       db.execute(sql`
         SELECT
           COUNT(*)::int AS alarm_events,
-          COALESCE(SUM(duration_seconds), 0)::int AS alarm_duration_seconds
+          COALESCE(SUM(duration_seconds), 0)::int AS alarm_duration_seconds,
+          COUNT(*) FILTER (WHERE ca.end_at IS NULL OR LOWER(COALESCE(ca.status, '')) <> 'recovered')::int AS open_alarms
         FROM charger_alarms ca
         JOIN stations s ON s.id = ca.station_id
         WHERE s.canonical_name IN ('tce ev station @meta mall', 'สถานีชาร์จ เมต้า มอลล์')
@@ -130,6 +131,7 @@ export async function GET(request: Request) {
         shortSessionRate: round(numberValue(session.sessions) ? (numberValue(session.short_sessions) / numberValue(session.sessions)) * 100 : 0, 1),
         alarmEvents: numberValue(alarm.alarm_events),
         alarmDurationMinutes: round(numberValue(alarm.alarm_duration_seconds) / 60),
+        openAlarms: numberValue(alarm.open_alarms),
         alarmRate: round(numberValue(session.sessions) ? (numberValue(alarm.alarm_events) / numberValue(session.sessions)) * 100 : 0, 1),
       },
       trend,

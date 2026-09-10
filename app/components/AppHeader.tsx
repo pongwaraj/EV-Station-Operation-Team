@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -32,7 +33,7 @@ export default function AppHeader() {
     <header className="app-header">
       <div className="app-header-inner">
         <Link className="brand" href="/dashboard" aria-label="ไปยังภาพรวมสถานี Meta Mall">
-          <span className="brand-mark" aria-hidden="true">TCE</span>
+          <Image className="brand-logo" src="/tce-logo.png" alt="TCE" width={64} height={42} priority />
           <span>
             <span className="brand-name">TCE ChargeX</span>
             <span className="brand-subtitle">Meta Mall</span>

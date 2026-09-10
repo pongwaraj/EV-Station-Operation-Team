@@ -53,6 +53,13 @@ body {
   text-decoration: none;
 }
 
+.brand-logo {
+  display: block;
+  height: 42px;
+  object-fit: contain;
+  width: 64px;
+}
+
 .brand-mark {
   align-items: center;
   background: var(--navy);
@@ -899,6 +906,98 @@ th {
   margin-bottom: 18px;
 }
 
+.executive-alert {
+  border-color: #e8d6c6;
+  margin-bottom: 18px;
+}
+
+.alert-heading {
+  align-items: flex-start;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+}
+
+.alert-heading h2 {
+  margin-bottom: 0;
+}
+
+.alert-level {
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 900;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+
+.alert-level.watch {
+  background: #fff4e8;
+  color: #9a5b10;
+}
+
+.alert-level.normal {
+  background: #e8f8ef;
+  color: #17663a;
+}
+
+.alert-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 20px;
+}
+
+.alert-card {
+  border: 1px solid;
+  border-radius: 12px;
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+}
+
+.alert-card.watch-card {
+  background: #fffaf3;
+  border-color: #f1d9b8;
+}
+
+.alert-card.action-card {
+  background: #fff4f2;
+  border-color: #f0c9c5;
+}
+
+.alert-card.normal-card {
+  background: #f1fbf5;
+  border-color: #ccebd8;
+}
+
+.alert-card-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.alert-card strong {
+  color: var(--navy);
+  font-size: 1.02rem;
+}
+
+.alert-card p,
+.alert-card a {
+  font-size: 0.78rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.alert-card p {
+  color: var(--muted);
+}
+
+.alert-card a {
+  color: #a6400d;
+  font-weight: 800;
+  text-decoration: none;
+}
+
 .kpi-value {
   color: var(--navy);
   font-size: clamp(1.7rem, 4vw, 2.5rem);
@@ -1008,7 +1107,7 @@ th {
 }
 
 .bar-fill {
-  background: linear-gradient(90deg, #f15a24, #ffb23e);
+  background: linear-gradient(90deg, #1f5d82, #59a4c7);
   border-radius: inherit;
   height: 100%;
 }
@@ -1068,6 +1167,19 @@ th {
 
   .decision-heading {
     display: block;
+  }
+
+  .alert-heading {
+    display: block;
+  }
+
+  .alert-level {
+    display: inline-flex;
+    margin-top: 10px;
+  }
+
+  .alert-grid {
+    grid-template-columns: 1fr;
   }
 
   .period-label {

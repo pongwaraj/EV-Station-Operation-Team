@@ -17,9 +17,18 @@ type DashboardData = {
     shortSessionRate: number;
     alarmEvents: number;
     alarmDurationMinutes: number;
+    openAlarms: number;
     alarmRate: number;
   };
   trend?: Array<{ date: string; sessions: number; energyKwh: number; revenueThb: number; alarmEvents: number }>;
+  abnormalSummary?: {
+    total: number;
+    recovered5m: number;
+    recovered30m: number;
+    recoveredSameDay: number;
+    noRecoveryObserved: number;
+    withOverlappingAlarm: number;
+  };
   peakHours?: Array<{ hour: number; sessions: number; energyKwh: number }>;
   imports?: { count: number; lastImportAt: string | null };
   quality?: Array<{ severity: string; count: number }>;
@@ -55,10 +64,14 @@ export default function DashboardPage() {
     if (start) query.set("from", start);
     if (end) query.set("to", end);
     try {
-      const response = await fetch(`/api/dashboard/overview?${query.toString()}`);
-      const result = (await response.json()) as DashboardData;
-      if (!response.ok) throw new Error(result.message ?? "dashboard unavailable");
-      setData(result);
+      const [overviewResponse, abnormalResponse] = await Promise.all([
+        fetch(`/api/dashboard/overview?${query.toString()}`),
+        fetch(`/api/dashboard/abnormal-sessions?${query.toString()}`),
+      ]);
+      const result = (await overviewResponse.json()) as DashboardData;
+      if (!overviewResponse.ok) throw new Error(result.message ?? "dashboard unavailable");
+      const abnormalResult = abnormalResponse.ok ? await abnormalResponse.json() as { summary?: DashboardData["abnormalSummary"] } : null;
+      setData({ ...result, abnormalSummary: abnormalResult?.summary });
     } catch (loadError) {
       console.error("Unable to load dashboard", loadError);
       setError("ขณะนี้ยังไม่สามารถแสดงข้อมูลได้");
@@ -67,10 +80,13 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const effectiveFrom = from || (data?.range ? formatInputDate(new Date(data.range.from)) : "");
+  const effectiveTo = to || (data?.range ? formatInputDate(new Date(data.range.to)) : "");
+
   const loadDashboard = useCallback(async (event?: FormEvent) => {
     event?.preventDefault();
-    await fetchDashboard(from, to);
-  }, [fetchDashboard, from, to]);
+    await fetchDashboard(effectiveFrom, effectiveTo);
+  }, [effectiveFrom, effectiveTo, fetchDashboard]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => { void fetchDashboard("", ""); }, 0);
@@ -81,18 +97,18 @@ export default function DashboardPage() {
   const peak = useMemo(() => [...(data?.peakHours ?? [])].sort((a, b) => b.sessions - a.sessions)[0], [data]);
   const abnormalSessionsHref = useMemo(() => {
     const query = new URLSearchParams();
-    if (from) query.set("from", from);
-    if (to) query.set("to", to);
+    if (effectiveFrom) query.set("from", effectiveFrom);
+    if (effectiveTo) query.set("to", effectiveTo);
     const suffix = query.toString();
     return `/abnormal-sessions${suffix ? `?${suffix}` : ""}`;
-  }, [from, to]);
+  }, [effectiveFrom, effectiveTo]);
   const alarmsHref = useMemo(() => {
     const query = new URLSearchParams();
-    if (from) query.set("from", from);
-    if (to) query.set("to", to);
+    if (effectiveFrom) query.set("from", effectiveFrom);
+    if (effectiveTo) query.set("to", effectiveTo);
     const suffix = query.toString();
     return `/alarms${suffix ? `?${suffix}` : ""}`;
-  }, [from, to]);
+  }, [effectiveFrom, effectiveTo]);
 
   function setDatePreset(days: number) {
     const end = new Date();
@@ -111,8 +127,8 @@ export default function DashboardPage() {
 
       <section className="panel filter-panel">
         <form className="filter-form" onSubmit={loadDashboard}>
-          <label>ตั้งแต่<input type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></label>
-          <label>ถึง<input type="date" value={to} onChange={(event) => setTo(event.target.value)} /></label>
+          <label>ตั้งแต่<input type="date" value={effectiveFrom} onChange={(event) => setFrom(event.target.value)} /></label>
+          <label>ถึง<input type="date" value={effectiveTo} onChange={(event) => setTo(event.target.value)} /></label>
           <button type="submit">อัปเดตภาพรวม</button>
         </form>
         <div className="preset-row" aria-label="ช่วงเวลาที่เลือกได้">
@@ -137,6 +153,35 @@ export default function DashboardPage() {
             <article className="card"><p className="card-label">พลังงานที่จ่าย</p><p className="kpi-value">{formatNumber(data.kpis.energyKwh, 1)} <small>kWh</small></p></article>
             <article className="card"><p className="card-label">รายได้จากการชาร์จ <small>(7.90 บาท/kWh)</small></p><p className="kpi-value">฿{formatNumber(data.kpis.revenueThb, 0)}</p></article>
             <article className="card"><p className="card-label">ลูกค้าที่ใช้งาน</p><p className="kpi-value">{formatNumber(data.kpis.uniqueCustomers)}</p></article>
+          </section>
+
+          <section className="panel executive-alert" aria-labelledby="executive-alert-title">
+            <div className="alert-heading">
+              <div>
+                <p className="section-label">Executive Alert</p>
+                <h2 id="executive-alert-title">สถานะที่ควรดำเนินการ</h2>
+              </div>
+              <span className={`alert-level ${data.kpis.openAlarms > 0 || data.kpis.shortSessionRate > 5 ? "watch" : "normal"}`}>
+                {data.kpis.openAlarms > 0 ? "ต้องติดตามวันนี้" : data.kpis.shortSessionRate > 5 ? "เฝ้าระวัง" : "อยู่ในเกณฑ์ปกติ"}
+              </span>
+            </div>
+            <div className="alert-grid">
+              <article className="alert-card watch-card">
+                <span className="alert-card-label">อะไรผิดปกติ</span>
+                <strong>ชาร์จสั้น {formatNumber(data.kpis.shortSessionRate, 1)}%</strong>
+                <p>{formatNumber(data.kpis.shortSessions)} รายการจากทั้งหมด {formatNumber(data.kpis.sessions)} รายการ</p>
+              </article>
+              <article className={`alert-card ${data.kpis.openAlarms > 0 ? "action-card" : "watch-card"}`}>
+                <span className="alert-card-label">กระทบลูกค้า / ระบบ</span>
+                <strong>{data.abnormalSummary ? `${formatNumber(data.abnormalSummary.noRecoveryObserved)} รายการยังไม่พบ recovery` : "กำลังประเมิน recovery"}</strong>
+                <p>{formatNumber(data.kpis.openAlarms)} Alarm ยังไม่ Recovered · {formatNumber(data.abnormalSummary?.withOverlappingAlarm ?? 0)} session ซ้อนช่วง Alarm</p>
+              </article>
+              <article className="alert-card action-card">
+                <span className="alert-card-label">ข้อเสนอแนะวันนี้</span>
+                <strong>{data.kpis.openAlarms > 0 ? "ตรวจ Alarm ที่ยังไม่ Recovered" : "ตรวจหัวชาร์จที่เกิดซ้ำ"}</strong>
+                <Link href={data.kpis.openAlarms > 0 ? alarmsHref : abnormalSessionsHref}>เปิดรายละเอียดเพื่อดำเนินการ →</Link>
+              </article>
+            </div>
           </section>
 
           <section className="content-grid dashboard-panels">
