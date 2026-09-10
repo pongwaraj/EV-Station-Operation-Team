@@ -509,6 +509,17 @@ button:disabled {
   margin-bottom: 0;
 }
 
+.recovery-summary-panel {
+  margin-top: 18px;
+}
+
+.recovery-summary-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 20px;
+}
+
 .drilldown-note {
   border-top: 1px solid #e5edf4;
   margin: 16px 0 0;
@@ -1202,6 +1213,7 @@ th {
   .filter-form,
   .process-steps,
   .decision-grid,
+  .recovery-summary-grid,
   .abnormal-summary-grid,
   .alarm-summary-grid {
     grid-template-columns: 1fr;

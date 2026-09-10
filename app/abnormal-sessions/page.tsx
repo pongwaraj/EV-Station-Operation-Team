@@ -26,6 +26,12 @@ type AbnormalSession = {
   recoveryReasonCategory: string | null;
   recoveryChargerName: string | null;
   recoveryConnectorName: string | null;
+  recoveryPath: "same_connector" | "same_charger_other_connector" | "other_charger" | "no_recovery";
+  retryLevel: "none" | "once" | "multiple";
+  successfulSessions7d: number;
+  successfulSessions30d: number;
+  returnedWithin7d: boolean;
+  returnedWithin30d: boolean;
   retryCount: number;
   alarmCount: number;
   alarmSummary: string | null;
@@ -40,6 +46,12 @@ type AbnormalData = {
     recoveredSameDay: number;
     noRecoveryObserved: number;
     withOverlappingAlarm: number;
+    sameConnectorRecovery: number;
+    sameChargerOtherConnector: number;
+    otherChargerRecovery: number;
+    multipleRetry: number;
+    returnedWithin7d: number;
+    returnedWithin30d: number;
   };
   items?: AbnormalSession[];
 };
@@ -65,6 +77,13 @@ const recoveryLabels: Record<RecoveryStatus, string> = {
   recovered_same_day: "กลับมาสำเร็จภายในวัน",
   recovered_later: "กลับมาสำเร็จในวันถัดไป",
   no_recovery_observed: "ยังไม่พบการกลับมาสำเร็จ",
+};
+
+const recoveryPathLabels: Record<AbnormalSession["recoveryPath"], string> = {
+  same_connector: "หัวเดิม",
+  same_charger_other_connector: "ตู้เดิม เปลี่ยนหัว",
+  other_charger: "เปลี่ยนตู้",
+  no_recovery: "ยังไม่พบ recovery",
 };
 
 function AbnormalSessionsContent() {
@@ -135,6 +154,21 @@ function AbnormalSessionsContent() {
             <article className="card"><p className="card-label">ยังไม่พบ recovery</p><p className="kpi-value">{formatNumber(data.summary.noRecoveryObserved)}</p><p className="hint">ควรตรวจสอบร่วมกับบริบทอื่น</p></article>
           </section>
 
+          <section className="panel recovery-summary-panel">
+            <div className="decision-heading">
+              <div><p className="section-label">CUSTOMER RECOVERY & RETENTION</p><h2>รูปแบบการกลับมาใช้บริการ</h2></div>
+              <span className="period-label">นับจาก Customer ID แบบปกปิด</span>
+            </div>
+            <div className="recovery-summary-grid">
+              <article className="decision-metric"><span>กลับมาที่หัวเดิม</span><strong>{formatNumber(data.summary.sameConnectorRecovery)}</strong><small>Recovery สำเร็จเร็ว/ภายในช่วงติดตาม</small></article>
+              <article className="decision-metric"><span>ตู้เดิม เปลี่ยนหัว</span><strong>{formatNumber(data.summary.sameChargerOtherConnector)}</strong><small>ใช้ตู้เดิมแต่เปลี่ยน connector</small></article>
+              <article className="decision-metric"><span>เปลี่ยนตู้</span><strong>{formatNumber(data.summary.otherChargerRecovery)}</strong><small>สัญญาณว่าหัวเดิม/ตู้เดิมอาจมีปัญหา</small></article>
+              <article className="decision-metric"><span>กลับมาใช้ซ้ำใน 7 วัน</span><strong>{formatNumber(data.summary.returnedWithin7d)}</strong><small>ดู retention หลังเหตุผิดปกติ</small></article>
+              <article className="decision-metric"><span>กลับมาใช้ซ้ำใน 30 วัน</span><strong>{formatNumber(data.summary.returnedWithin30d)}</strong><small>รวมการกลับมาในช่วงติดตาม</small></article>
+              <article className="decision-metric"><span>Retry หลายครั้ง</span><strong>{formatNumber(data.summary.multipleRetry)}</strong><small>มี short session ซ้ำตั้งแต่ 2 ครั้งขึ้นไป</small></article>
+            </div>
+          </section>
+
           <section className="panel abnormal-panel">
             <div className="decision-heading">
               <div><p className="section-label">DRILL-DOWN</p><h2>รายการที่ตรวจสอบได้ทีละเหตุการณ์</h2></div>
@@ -174,6 +208,7 @@ function AbnormalSessionsContent() {
                             <div><dt>ระยะเวลา / พลังงาน</dt><dd>{formatDuration(item.recoveryDurationSeconds)}<br />{formatNumber(item.recoveryKwh ?? 0, 2)} kWh</dd></div>
                             <div><dt>สาเหตุที่บันทึก</dt><dd>{item.recoveryStopReason ?? item.recoveryReasonCategory ?? "ไม่ระบุ"}</dd></div>
                           </dl>
+                          <div className="recovery-detail positive"><strong>{recoveryPathLabels[item.recoveryPath]}</strong><span>กลับมาใช้ซ้ำใน 7 วัน: {item.returnedWithin7d ? "ใช่" : "ไม่พบในข้อมูล"} · 30 วัน: {item.returnedWithin30d ? "ใช่" : "ไม่พบในข้อมูล"}</span></div>
                         </article>
                       </div>
                     ) : (

@@ -42,6 +42,8 @@ export async function GET(request: Request) {
     const result = await db.execute(sql`
       SELECT
         cs.id,
+        cs.charger_id,
+        cs.connector_id,
         cs.start_at,
         cs.end_at,
         cs.duration_seconds,
@@ -59,7 +61,11 @@ export async function GET(request: Request) {
         recovery.reason_category AS recovery_reason_category,
         recovery.charger_name AS recovery_charger_name,
         recovery.connector_name AS recovery_connector_name,
+        recovery.charger_id AS recovery_charger_id,
+        recovery.connector_id AS recovery_connector_id,
         retries.retry_count,
+        retention.successful_7d,
+        retention.successful_30d,
         alarms.alarm_count,
         alarms.alarm_summary
       FROM charging_sessions cs
@@ -75,6 +81,8 @@ export async function GET(request: Request) {
           ns.charging_amount_kwh,
           ns.stop_reason_raw,
           ns.reason_category,
+          ns.charger_id,
+          ns.connector_id,
           COALESCE(next_charger.source_name, next_charger.serial_number) AS charger_name,
           COALESCE(next_connector.source_name, next_connector.connector_no::text) AS connector_name
         FROM charging_sessions ns
@@ -99,6 +107,19 @@ export async function GET(request: Request) {
           AND (retry_session.duration_seconds < 60 OR retry_session.charging_amount_kwh < 1)
           AND retry_station.canonical_name IN ('tce ev station @meta mall', 'สถานีชาร์จ เมต้า มอลล์')
       ) retries ON true
+      LEFT JOIN LATERAL (
+        SELECT
+          COUNT(*) FILTER (WHERE ns.start_at <= COALESCE(cs.end_at, cs.start_at) + INTERVAL '7 days')::int AS successful_7d,
+          COUNT(*)::int AS successful_30d
+        FROM charging_sessions ns
+        JOIN stations retention_station ON retention_station.id = ns.station_id
+        WHERE ns.customer_identifier_id = cs.customer_identifier_id
+          AND ns.start_at > COALESCE(cs.end_at, cs.start_at)
+          AND ns.start_at <= COALESCE(cs.end_at, cs.start_at) + INTERVAL '30 days'
+          AND ns.duration_seconds >= 60
+          AND ns.charging_amount_kwh >= 1
+          AND retention_station.canonical_name IN ('tce ev station @meta mall', 'สถานีชาร์จ เมต้า มอลล์')
+      ) retention ON true
       LEFT JOIN LATERAL (
         SELECT
           COUNT(*)::int AS alarm_count,
@@ -153,6 +174,18 @@ export async function GET(request: Request) {
         recoveryReasonCategory: recoveryAt && event.recovery_reason_category ? String(event.recovery_reason_category) : null,
         recoveryChargerName: recoveryAt && event.recovery_charger_name ? String(event.recovery_charger_name) : null,
         recoveryConnectorName: recoveryAt && event.recovery_connector_name ? String(event.recovery_connector_name) : null,
+        recoveryPath: recoveryAt
+          ? String(event.charger_id) === String(event.recovery_charger_id) && String(event.connector_id) === String(event.recovery_connector_id)
+            ? "same_connector"
+            : String(event.charger_id) === String(event.recovery_charger_id)
+              ? "same_charger_other_connector"
+              : "other_charger"
+          : "no_recovery",
+        retryLevel: numberValue(event.retry_count) >= 2 ? "multiple" : numberValue(event.retry_count) === 1 ? "once" : "none",
+        successfulSessions7d: numberValue(event.successful_7d),
+        successfulSessions30d: numberValue(event.successful_30d),
+        returnedWithin7d: numberValue(event.successful_7d) > 0,
+        returnedWithin30d: numberValue(event.successful_30d) > 0,
         retryCount: numberValue(event.retry_count),
         alarmCount: numberValue(event.alarm_count),
         alarmSummary: event.alarm_summary ? String(event.alarm_summary) : null,
@@ -166,6 +199,12 @@ export async function GET(request: Request) {
       recoveredSameDay: items.filter((item) => item.recoveryStatus !== "no_recovery_observed" && item.recoveryStatus !== "recovered_later").length,
       noRecoveryObserved: items.filter((item) => item.recoveryStatus === "no_recovery_observed").length,
       withOverlappingAlarm: items.filter((item) => item.alarmCount > 0).length,
+      sameConnectorRecovery: items.filter((item) => item.recoveryPath === "same_connector").length,
+      sameChargerOtherConnector: items.filter((item) => item.recoveryPath === "same_charger_other_connector").length,
+      otherChargerRecovery: items.filter((item) => item.recoveryPath === "other_charger").length,
+      multipleRetry: items.filter((item) => item.retryLevel === "multiple").length,
+      returnedWithin7d: items.filter((item) => item.returnedWithin7d).length,
+      returnedWithin30d: items.filter((item) => item.returnedWithin30d).length,
     };
 
     return Response.json({ range: { from: from.toISOString(), to: to.toISOString() }, summary, items });
