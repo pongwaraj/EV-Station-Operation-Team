@@ -8,12 +8,22 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type Overview = { kpis: { sessions: number; energyKwh: number; revenueThb: number; uniqueCustomers: number; shortSessions: number; shortSessionRate: number; avgDurationMinutes: number; averageEnergyPerSession: number }; trend: { date: string; sessions: number }[]; peakHours: { hour: number; sessions: number }[]; imports: { lastImportAt: string | null } };
-type Experience = { summary: { total: number; noRecoveryObserved: number }; items: { startAt: string; recoveryAt: string | null; recoveryGapMinutes: number | null; recoveryKwh: number | null; recoveryPath: string }[] };
+type Experience = { summary: { total: number; noRecoveryObserved: number }; items: { startAt: string; endAt: string | null; durationSeconds: number; recoveryAt: string | null; recoveryGapMinutes: number | null; recoveryKwh: number | null; recoveryPath: string }[] };
 type Alarms = { summary: { total: number; incidents: number; active: number; impactedSessions: number }; topCauses: { code: string; reason: string; incidentCount: number; deviceCount: number }[]; items: { impactedShortSessionIds: string[] }[] };
 type Report = { date: string; baselineFrom: string; baselineTo: string; overview: Overview; baseline: Overview; experience: Experience; alarms: Alarms; generatedAt: string };
 const day = (date: Date) => new Date(date.getTime() + 7 * 3600000).toISOString().slice(0, 10);
 const shift = (value: string, days: number) => day(new Date(new Date(`${value}T00:00:00+07:00`).getTime() + days * 86400000));
 const fmt = (n: number, digits = 0) => new Intl.NumberFormat("th-TH", { maximumFractionDigits: digits }).format(n);
+function durationLabel(seconds: number) {
+  const total = Math.max(0, Math.round(seconds));
+  const minutes = Math.floor(total / 60);
+  return minutes ? `${fmt(minutes)} นาที${total % 60 ? ` ${total % 60} วินาที` : ""}` : `${total} วินาที`;
+}
+function recoveryDelay(item: Experience["items"][number]) {
+  if (!item.recoveryAt) return "";
+  if (item.endAt) return durationLabel((new Date(item.recoveryAt).getTime() - new Date(item.endAt).getTime()) / 1000);
+  return item.recoveryGapMinutes === null ? "ไม่ทราบระยะเวลา" : `ประมาณ ${durationLabel(item.recoveryGapMinutes * 60)} (อ้างอิงเวลาเริ่ม เนื่องจากไม่มีเวลาสิ้นสุด)`;
+}
 const dateLabel = (value: string) => new Date(`${value}T00:00:00+07:00`).toLocaleDateString("th-TH", { dateStyle: "medium", timeZone: "Asia/Bangkok" });
 const delta = (value: number, total: number) => total > 0 ? `${value >= total / 7 ? "สูงกว่า" : "ต่ำกว่า"}เฉลี่ย 7 วัน ${fmt(Math.abs((value / (total / 7) - 1) * 100), 1)}%` : "ไม่มีฐานเปรียบเทียบ";
 
@@ -66,7 +76,11 @@ export default function SnapshotPage() {
       <HourlyComparison current={report.overview.peakHours} baseline={report.baseline.peakHours} />
       <div className="snapshot-columns">
         <section><h2>ประสบการณ์ลูกค้า</h2><p className="snapshot-big">{k.shortSessions} <small>ชาร์จสั้น / {k.sessions} ครั้ง ({fmt(k.shortSessionRate, 1)}%)</small></p><dl><div><dt>กลับมาสำเร็จภายในวัน</dt><dd>{sameDay} เหตุการณ์</dd></div><div><dt>ในจำนวนนี้ ภายใน 5 นาที</dt><dd>{items.filter(i => i.recoveryAt && day(new Date(i.recoveryAt)) === report.date && (i.recoveryGapMinutes ?? Infinity) <= 5).length}</dd></div><div><dt>กลับมาสำเร็จหลังวันรายงาน</dt><dd>{later}</dd></div><div><dt>ยังไม่พบกลับมาสำเร็จ</dt><dd>{noRecovery}</dd></div></dl>
-        {items.length === 1 && items[0].recoveryAt && <p className="snapshot-note">เคสที่พบกลับมาชาร์จ{items[0].recoveryPath === "same_connector" ? "หัวเดิม" : "อีกครั้ง"}ใน {fmt(items[0].recoveryGapMinutes ?? 0, 1)} นาที จ่ายพลังงาน {fmt(items[0].recoveryKwh ?? 0, 2)} kWh</p>}
+        {items.slice(0, 3).map((item, index) => <p className="snapshot-note" key={item.startAt + index}>
+          <strong>{items.length > 1 ? `เคส ${index + 1} · ` : ""}ชาร์จสั้นนาน {durationLabel(item.durationSeconds)}</strong>
+          {item.recoveryAt ? <> → กลับมาชาร์จสำเร็จ{item.recoveryPath === "same_connector" ? "ที่หัวเดิม" : "อีกครั้ง"}หลัง {recoveryDelay(item)}{item.endAt ? " นับจากสิ้นสุดครั้งแรก" : ""} · จ่ายพลังงาน {fmt(item.recoveryKwh ?? 0, 2)} kWh</> : " → ยังไม่พบกลับมาชาร์จสำเร็จในข้อมูลปัจจุบัน"}
+        </p>)}
+        {items.length > 3 && <p className="snapshot-note"><Link href={`/abnormal-sessions?from=${report.date}&to=${report.date}`}>ดูระยะเวลาและ Recovery อีก {items.length - 3} เคส</Link></p>}
         </section>
         <section><h2>สัญญาณเตือนจากอุปกรณ์</h2><p className="snapshot-big">{a.total} <small>รายการ → {a.incidents} กลุ่มเหตุการณ์</small></p><dl><div><dt>สัญญาณเตือนยังไม่ปิด</dt><dd>{a.active} รายการ</dd></div><div><dt>Session ซ้อนช่วง Alarm (ไม่ซ้ำ)</dt><dd>{a.impactedSessions}</dd></div><div><dt>ชาร์จสั้นซ้อนช่วง Alarm</dt><dd>{shortOverlap}</dd></div></dl><p className="snapshot-note">{cause ? `พบมากสุด Code ${cause.code} · ${cause.reason} (${cause.incidentCount} กลุ่ม / ${cause.deviceCount} คู่ตู้–หัวชาร์จ)` : "ไม่พบสัญญาณเตือนที่เริ่มในวันที่เลือก"}</p></section>
       </div>
