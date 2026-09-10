@@ -520,6 +520,72 @@ button:disabled {
   margin-top: 20px;
 }
 
+.priority-panel {
+  margin-top: 18px;
+}
+
+.priority-note {
+  margin: 0 0 14px;
+}
+
+.priority-table-wrap {
+  overflow-x: auto;
+}
+
+.priority-table {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: collapse;
+}
+
+.priority-table th,
+.priority-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.priority-table th {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.priority-table td small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  margin-top: 3px;
+}
+
+.priority-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 5px 8px;
+}
+
+.priority-badge.high {
+  background: #ffe4e4;
+  color: #a32929;
+}
+
+.priority-badge.watch {
+  background: #fff1cf;
+  color: #8a5a00;
+}
+
+.priority-badge.monitor {
+  background: #e8f1ff;
+  color: #24528f;
+}
+
 .drilldown-note {
   border-top: 1px solid #e5edf4;
   margin: 16px 0 0;

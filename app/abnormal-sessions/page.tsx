@@ -53,6 +53,18 @@ type AbnormalData = {
     returnedWithin7d: number;
     returnedWithin30d: number;
   };
+  priorityCases?: Array<{
+    chargerName: string;
+    connectorName: string;
+    shortSessions: number;
+    noRecovery: number;
+    multipleRetry: number;
+    alarmLinked: number;
+    recovered: number;
+    recoveryRate: number;
+    riskScore: number;
+    priority: "high" | "watch" | "monitor";
+  }>;
   items?: AbnormalSession[];
 };
 
@@ -84,6 +96,12 @@ const recoveryPathLabels: Record<AbnormalSession["recoveryPath"], string> = {
   same_charger_other_connector: "ตู้เดิม เปลี่ยนหัว",
   other_charger: "เปลี่ยนตู้",
   no_recovery: "ยังไม่พบ recovery",
+};
+
+const priorityLabels = {
+  high: "เร่งตรวจสอบ",
+  watch: "เฝ้าระวัง",
+  monitor: "ติดตาม",
 };
 
 function AbnormalSessionsContent() {
@@ -166,6 +184,34 @@ function AbnormalSessionsContent() {
               <article className="decision-metric"><span>กลับมาใช้ซ้ำใน 7 วัน</span><strong>{formatNumber(data.summary.returnedWithin7d)}</strong><small>ดู retention หลังเหตุผิดปกติ</small></article>
               <article className="decision-metric"><span>กลับมาใช้ซ้ำใน 30 วัน</span><strong>{formatNumber(data.summary.returnedWithin30d)}</strong><small>รวมการกลับมาในช่วงติดตาม</small></article>
               <article className="decision-metric"><span>Retry หลายครั้ง</span><strong>{formatNumber(data.summary.multipleRetry)}</strong><small>มี short session ซ้ำตั้งแต่ 2 ครั้งขึ้นไป</small></article>
+            </div>
+          </section>
+
+          <section className="panel priority-panel">
+            <div className="decision-heading">
+              <div><p className="section-label">ACTION CENTER</p><h2>จุดที่ควรจัดลำดับแก้ไข</h2></div>
+              <span className="period-label">เรียงตามความเสี่ยงจากข้อมูลช่วงที่เลือก</span>
+            </div>
+            <p className="hint priority-note">คะแนนความเสี่ยงใช้ประกอบการจัดลำดับงาน: ไม่พบ recovery, retry หลายครั้ง, มี Alarm ซ้อน และจำนวนชาร์จสั้น ไม่ใช่การยืนยันสาเหตุของปัญหา</p>
+            <div className="priority-table-wrap">
+              <table className="priority-table">
+                <thead><tr><th>ระดับ</th><th>Charger / หัว</th><th>ชาร์จสั้น</th><th>ไม่พบ recovery</th><th>Retry หลายครั้ง</th><th>Alarm ซ้อน</th><th>Recovery rate</th><th>ข้อเสนอแนะ</th></tr></thead>
+                <tbody>
+                  {(data.priorityCases ?? []).map((item) => (
+                    <tr key={`${item.chargerName}-${item.connectorName}`}>
+                      <td><span className={`priority-badge ${item.priority}`}>{priorityLabels[item.priority]}</span><small>Score {formatNumber(item.riskScore)}</small></td>
+                      <td><strong>{item.chargerName}</strong><small>Connector {item.connectorName}</small></td>
+                      <td>{formatNumber(item.shortSessions)}</td>
+                      <td>{formatNumber(item.noRecovery)}</td>
+                      <td>{formatNumber(item.multipleRetry)}</td>
+                      <td>{formatNumber(item.alarmLinked)}</td>
+                      <td>{formatNumber(item.recoveryRate, 1)}%</td>
+                      <td>{item.noRecovery > 0 ? "ตรวจหัว/สถานะก่อน" : item.multipleRetry > 0 ? "ตรวจ flow retry" : "ติดตามแนวโน้ม"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!data.priorityCases?.length && <p className="hint">ยังไม่มีจุดที่ต้องจัดลำดับแก้ไข</p>}
             </div>
           </section>
 

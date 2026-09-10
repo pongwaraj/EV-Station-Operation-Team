@@ -192,6 +192,48 @@ export async function GET(request: Request) {
       };
     });
 
+    const priorityMap = new Map<string, {
+      chargerName: string;
+      connectorName: string;
+      shortSessions: number;
+      noRecovery: number;
+      multipleRetry: number;
+      alarmLinked: number;
+      recovered: number;
+    }>();
+
+    for (const item of items) {
+      const key = `${item.chargerName}::${item.connectorName}`;
+      const current = priorityMap.get(key) ?? {
+        chargerName: item.chargerName,
+        connectorName: item.connectorName,
+        shortSessions: 0,
+        noRecovery: 0,
+        multipleRetry: 0,
+        alarmLinked: 0,
+        recovered: 0,
+      };
+      current.shortSessions += 1;
+      current.noRecovery += item.recoveryStatus === "no_recovery_observed" ? 1 : 0;
+      current.multipleRetry += item.retryLevel === "multiple" ? 1 : 0;
+      current.alarmLinked += item.alarmCount > 0 ? 1 : 0;
+      current.recovered += item.recoveryStatus === "no_recovery_observed" ? 0 : 1;
+      priorityMap.set(key, current);
+    }
+
+    const priorityCases = [...priorityMap.values()]
+      .map((item) => {
+        const riskScore = (item.noRecovery * 3) + (item.multipleRetry * 2) + (item.alarmLinked * 2) + item.shortSessions;
+        return {
+          ...item,
+          recoveryRate: round(item.recovered / item.shortSessions * 100, 1),
+          riskScore,
+          priority: riskScore >= 10 ? "high" : riskScore >= 5 ? "watch" : "monitor",
+        };
+      })
+      .sort((a, b) => b.riskScore - a.riskScore || b.shortSessions - a.shortSessions)
+      .slice(0, 10);
+
     const summary = {
       total: items.length,
       recovered5m: items.filter((item) => item.recoveryStatus === "recovered_5m").length,
@@ -207,7 +249,7 @@ export async function GET(request: Request) {
       returnedWithin30d: items.filter((item) => item.returnedWithin30d).length,
     };
 
-    return Response.json({ range: { from: from.toISOString(), to: to.toISOString() }, summary, items });
+    return Response.json({ range: { from: from.toISOString(), to: to.toISOString() }, summary, priorityCases, items });
   } catch (error) {
     return Response.json({ message: error instanceof Error ? error.message : "อ่านรายละเอียดการชาร์จผิดปกติไม่สำเร็จ" }, { status: 500 });
   }
