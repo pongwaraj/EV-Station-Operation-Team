@@ -146,7 +146,7 @@ export default function DashboardPage() {
         </section>
       )}
 
-      {data?.kpis && (
+      {data?.kpis && !loading && !error && (
         <>
           <section className="grid kpi-grid">
             <article className="card"><p className="card-label">จำนวนการชาร์จ</p><p className="kpi-value">{formatNumber(data.kpis.sessions)}</p></article>
@@ -188,10 +188,16 @@ export default function DashboardPage() {
             <article className="panel">
               <p className="section-label">แนวโน้มรายวัน</p>
               <h2>ปริมาณการใช้งานและพลังงาน</h2>
+              <div className="trend-chart" role="img" aria-label="กราฟจำนวนการชาร์จรายวัน เปิดตารางด้านล่างเพื่ออ่านค่าทั้งหมด">
+                {(data.trend ?? []).map(item => <div className="trend-chart-column" key={item.date} title={`${formatDate(item.date)} · ${formatNumber(item.sessions)} ครั้ง · ${formatNumber(item.energyKwh, 1)} kWh`}><div className="trend-chart-bar" style={{ height: `${item.sessions / trendMax * 100}%` }} /></div>)}
+              </div>
+              <div className="chart-range"><span>{data.trend?.[0] ? formatDate(data.trend[0].date) : "ไม่มีข้อมูล"}</span><span>จำนวนครั้ง / วัน</span><span>{data.trend?.length ? formatDate(data.trend[data.trend.length - 1].date) : ""}</span></div>
+              <details className="chart-details"><summary>ดูตัวเลขรายวัน</summary>
               <div className="trend-list">
                 {(data.trend ?? []).map((item) => <div className="trend-row" key={item.date}><span>{formatDate(item.date)}</span><div className="bar-track"><div className="bar-fill" style={{ width: `${Math.max(3, (item.sessions / trendMax) * 100)}%` }} /></div><strong>{formatNumber(item.sessions)} ครั้ง</strong><em>{formatNumber(item.energyKwh, 1)} kWh</em></div>)}
                 {!data.trend?.length && <p className="hint">ยังไม่มีข้อมูลในช่วงวันที่เลือก</p>}
               </div>
+              </details>
             </article>
             <article className="panel">
               <p className="section-label">สัญญาณประสบการณ์ใช้งาน</p>

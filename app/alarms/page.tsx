@@ -115,9 +115,9 @@ function AlarmsContent() {
           <section className="panel incident-summary-panel">
             <div className="decision-heading">
               <div><p className="section-label">INCIDENT VIEW</p><h2>เหตุการณ์ทางเทคนิคหลังรวม Alarm ซ้ำ</h2></div>
-              <span className="period-label">Downtime แบบไม่ซ้อน {formatNumber(data.summary.incidentDurationMinutes, 1)} นาที</span>
+              <span className="period-label">เวลารวมของกลุ่ม Alarm {formatNumber(data.summary.incidentDurationMinutes, 1)} นาที</span>
             </div>
-            <p className="hint incident-definition">นิยามรอบนี้: Alarm code/สาเหตุเดียวกันบนตู้และหัวเดียวกันที่ต่อเนื่องหรือห่างกันไม่เกิน 5 นาที จะถูกรวมเป็น incident เดียว</p>
+            <p className="hint incident-definition">รวมรหัสและสาเหตุเดียวกันบนหัวเดียวกันที่ห่างไม่เกิน 5 นาทีเป็นกลุ่มเดียว · เวลารวมนี้ยังไม่ใช่ Downtime ของสถานี</p>
             <div className="incident-table-wrap">
               <table className="incident-table">
                 <thead><tr><th>เริ่มเกิด</th><th>สาเหตุ</th><th>ตู้ / หัว</th><th>Alarm records</th><th>เวลารวมไม่ซ้อน</th><th>Session กระทบ</th><th>สถานะ</th></tr></thead>

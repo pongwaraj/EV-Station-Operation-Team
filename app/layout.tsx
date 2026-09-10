@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import AppHeader from "./components/AppHeader";
 import "./globals.css";
+import "./workspace.css";
 
 export const metadata: Metadata = {
   title: "Meta Mall | TCE ChargeX",
@@ -11,8 +12,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="th">
       <body>
+        <a className="skip-link" href="#workspace-content">ข้ามไปเนื้อหา</a>
         <AppHeader />
-        <div className="app-main">{children}</div>
+        <div className="app-main" id="workspace-content">{children}</div>
       </body>
     </html>
   );
