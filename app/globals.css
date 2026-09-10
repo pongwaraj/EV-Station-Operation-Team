@@ -776,6 +776,48 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
+.incident-summary-panel {
+  margin-top: 18px;
+}
+
+.incident-definition {
+  margin: 10px 0 0;
+}
+
+.incident-table-wrap {
+  margin-top: 18px;
+  overflow-x: auto;
+}
+
+.incident-table {
+  min-width: 860px;
+}
+
+.incident-table td {
+  color: #52657a;
+  vertical-align: top;
+}
+
+.incident-table td strong {
+  color: var(--navy);
+  display: block;
+  font-size: 0.78rem;
+}
+
+.incident-table td small {
+  color: var(--muted);
+  display: block;
+  font-size: 0.7rem;
+  line-height: 1.45;
+  margin-top: 3px;
+  max-width: 220px;
+  white-space: normal;
+}
+
+.cause-table {
+  min-width: 760px;
+}
+
 .sample-table-wrap {
   overflow-x: auto;
 }

@@ -24,7 +24,9 @@ type Alarm = {
 
 type AlarmData = {
   message?: string;
-  summary?: { total: number; recovered: number; active: number; longerThan5Minutes: number; overlappingSessions: number };
+  summary?: { total: number; incidents: number; recovered: number; active: number; openIncidents: number; longerThan5Minutes: number; overlappingSessions: number; impactedSessions: number; incidentDurationMinutes: number };
+  topCauses?: Array<{ code: string; reason: string; incidentCount: number; alarmRecordCount: number; durationSeconds: number; impactedSessions: number; deviceCount: number; activeIncidents: number }>;
+  incidents?: Array<{ id: string; code: string; reason: string; chargerName: string; connectorName: string; startAt: string; endAt: string | null; status: string; alarmCount: number; durationSeconds: number; impactedSessionCount: number; impactedShortSessionCount: number }>;
   items?: Alarm[];
 };
 
@@ -104,16 +106,49 @@ function AlarmsContent() {
       {data?.summary && !loading && (
         <>
           <section className="grid alarm-summary-grid">
-            <article className="card"><p className="card-label">Alarm ทั้งหมด</p><p className="kpi-value">{formatNumber(data.summary.total)}</p></article>
-            <article className="card"><p className="card-label">Recovered</p><p className="kpi-value">{formatNumber(data.summary.recovered)}</p><p className="hint">สิ้นสุดในข้อมูลที่นำเข้า</p></article>
-            <article className="card"><p className="card-label">ยังต้องตรวจสอบ</p><p className="kpi-value">{formatNumber(data.summary.active)}</p><p className="hint">สถานะไม่ใช่ Recovered หรือยังไม่มีเวลาสิ้นสุด</p></article>
-            <article className="card"><p className="card-label">นานตั้งแต่ 5 นาที</p><p className="kpi-value">{formatNumber(data.summary.longerThan5Minutes)}</p><p className="hint">จัดเป็นรายการติดตามก่อน</p></article>
+            <article className="card"><p className="card-label">Alarm records</p><p className="kpi-value">{formatNumber(data.summary.total)}</p><p className="hint">รายการจากระบบ</p></article>
+            <article className="card"><p className="card-label">Technical incidents</p><p className="kpi-value">{formatNumber(data.summary.incidents)}</p><p className="hint">รวม Alarm ต่อเนื่องเป็นเหตุการณ์เดียว</p></article>
+            <article className="card"><p className="card-label">Session ที่ได้รับผลกระทบ</p><p className="kpi-value">{formatNumber(data.summary.impactedSessions)}</p><p className="hint">นับ session แบบไม่ซ้ำกัน</p></article>
+            <article className="card"><p className="card-label">Open incidents</p><p className="kpi-value">{formatNumber(data.summary.openIncidents)}</p><p className="hint">Alarm records ที่ยังไม่ Recovered {formatNumber(data.summary.active)} รายการ</p></article>
+          </section>
+
+          <section className="panel incident-summary-panel">
+            <div className="decision-heading">
+              <div><p className="section-label">INCIDENT VIEW</p><h2>เหตุการณ์ทางเทคนิคหลังรวม Alarm ซ้ำ</h2></div>
+              <span className="period-label">Downtime แบบไม่ซ้อน {formatNumber(data.summary.incidentDurationMinutes, 1)} นาที</span>
+            </div>
+            <p className="hint incident-definition">นิยามรอบนี้: Alarm code/สาเหตุเดียวกันบนตู้และหัวเดียวกันที่ต่อเนื่องหรือห่างกันไม่เกิน 5 นาที จะถูกรวมเป็น incident เดียว</p>
+            <div className="incident-table-wrap">
+              <table className="incident-table">
+                <thead><tr><th>เริ่มเกิด</th><th>สาเหตุ</th><th>ตู้ / หัว</th><th>Alarm records</th><th>เวลารวมไม่ซ้อน</th><th>Session กระทบ</th><th>สถานะ</th></tr></thead>
+                <tbody>
+                  {(data.incidents ?? []).map((incident) => <tr key={incident.id}><td>{formatDateTime(incident.startAt)}</td><td><strong>Code {incident.code}</strong><small>{incident.reason}</small></td><td>{incident.chargerName}<small>Connector {incident.connectorName}</small></td><td>{formatNumber(incident.alarmCount)}</td><td>{formatDuration(incident.durationSeconds)}</td><td>{formatNumber(incident.impactedSessionCount)}{incident.impactedShortSessionCount > 0 ? ` · สั้น ${formatNumber(incident.impactedShortSessionCount)}` : ""}</td><td><span className={`alarm-status ${incident.status === "Recovered" ? "recovered" : "active"}`}>{incident.status}</span></td></tr>)}
+                </tbody>
+              </table>
+              {!data.incidents?.length && <p className="hint">ไม่พบ Technical incident ในช่วงวันที่เลือก</p>}
+            </div>
+          </section>
+
+          <section className="panel incident-summary-panel">
+            <div className="decision-heading">
+              <div><p className="section-label">TOP 5 CAUSES</p><h2>สาเหตุที่เกิดบ่อยที่สุด</h2></div>
+              <span className="period-label">ใช้จัดลำดับจุดที่ควรตรวจสอบ</span>
+            </div>
+            <div className="incident-table-wrap">
+              <table className="incident-table cause-table">
+                <thead><tr><th>Code / สาเหตุ</th><th>Incidents</th><th>Alarm records</th><th>ตู้ / หัวที่พบ</th><th>Session กระทบ</th><th>เวลารวม</th><th>Open</th></tr></thead>
+                <tbody>
+                  {(data.topCauses ?? []).map((cause) => <tr key={`${cause.code}-${cause.reason}`}><td><strong>Code {cause.code}</strong><small>{cause.reason}</small></td><td>{formatNumber(cause.incidentCount)}</td><td>{formatNumber(cause.alarmRecordCount)}</td><td>{formatNumber(cause.deviceCount)}</td><td>{formatNumber(cause.impactedSessions)}</td><td>{formatDuration(cause.durationSeconds)}</td><td>{formatNumber(cause.activeIncidents)}</td></tr>)}
+                </tbody>
+              </table>
+              {!data.topCauses?.length && <p className="hint">ยังไม่มีข้อมูลสาเหตุในช่วงวันที่เลือก</p>}
+            </div>
           </section>
 
           <section className="panel abnormal-panel">
             <div className="decision-heading">
               <div><p className="section-label">ALARM DRILL-DOWN</p><h2>วันเวลาและรายละเอียดแต่ละเหตุการณ์</h2></div>
-              <span className="period-label">พบ session ทับช่วง Alarm {formatNumber(data.summary.overlappingSessions)} รายการ</span>
+              <span className="period-label">Alarm records ที่ทับช่วง session {formatNumber(data.summary.overlappingSessions)} รายการ</span>
             </div>
             <div className="abnormal-list">
               {(data.items ?? []).map((alarm) => (
