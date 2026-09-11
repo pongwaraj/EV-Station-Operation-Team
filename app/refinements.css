@@ -1,0 +1,69 @@
+/* Detail search, legibility, and responsive overflow refinements. */
+.loaded-period {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 16px 2px -10px;
+}
+.record-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  padding: 14px;
+  background: var(--background);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.record-filter label:first-child { flex: 1 1 220px; }
+.record-filter label { font-size: 11px; gap: 5px; }
+.record-filter input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font: inherit;
+  background: var(--surface);
+  color: var(--ink);
+}
+.record-filter select { min-height: 42px; font-size: 12px; }
+.record-filter > span { font-size: 11px; padding-bottom: 11px; color: var(--muted); }
+.record-empty {
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  padding: 28px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+.shell > *, .content-grid > *, .grid > *, .snapshot-columns > * { min-width: 0; }
+.abnormal-identity, .abnormal-usage, .alarm-detail, .snapshot-note { overflow-wrap: anywhere; }
+.record-filter :is(input, select):focus { border-color: var(--blue); }
+summary:focus-visible { border-radius: 8px; }
+.incident-table-wrap, .priority-table-wrap, .trend-list { scrollbar-width: thin; scrollbar-color: #9293a7 transparent; }
+.snapshot-capture .snapshot-controls { opacity: .65; }
+.snapshot-capture .snapshot-controls:focus-within, .snapshot-capture .snapshot-controls:hover { opacity: 1; }
+@media screen {
+  html[data-theme="dark"] :is(.recovery-arrow, .recovery-arrow span) { color: #96d8b3; }
+  html[data-theme="dark"] :is(.metric-list span, .metric-action, .abnormal-identity small, .abnormal-usage small) { color: var(--muted); }
+  html[data-theme="dark"] :is(.record-filter select, .record-filter input) { background: var(--surface); color: var(--ink); }
+  html[data-theme="dark"] .bar-track { background: #313449; }
+  html[data-theme="dark"] .priority-badge.monitor { background: #28354b; color: #b4d1ff; }
+}
+@media (max-width: 600px) {
+  .record-filter { gap: 10px; }
+  .record-filter label { flex: 1 1 100%; }
+  .record-filter button { margin-left: auto; }
+  .record-filter > span { padding-bottom: 0; align-self: center; }
+  .recovery-summary-grid, .decision-grid { gap: 8px; }
+  .decision-metric { padding: 12px; }
+  .decision-metric span, .decision-metric small { font-size: 11px; }
+  .snapshot-heading h1 { font-size: 23px; }
+  .snapshot-heading h1 span { font-size: 16px; }
+  .snapshot-controls { gap: 8px; }
+  .snapshot-controls button { font-size: 11px; padding: 0 12px; }
+  .period-label { line-height: 1.7; }
+  .theme-picker { margin-left: auto; }
+  .system-pill { flex-basis: 100%; margin: 0; padding: 0; }
+}
+@media print { .record-filter { display: none; } }

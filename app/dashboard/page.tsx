@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { rangeLabel } from "../../lib/display-date";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 type DashboardData = {
@@ -97,18 +98,16 @@ export default function DashboardPage() {
   const peak = useMemo(() => [...(data?.peakHours ?? [])].sort((a, b) => b.sessions - a.sessions)[0], [data]);
   const abnormalSessionsHref = useMemo(() => {
     const query = new URLSearchParams();
-    if (effectiveFrom) query.set("from", effectiveFrom);
-    if (effectiveTo) query.set("to", effectiveTo);
+    if (data?.range) { query.set("from", formatInputDate(new Date(data.range.from))); query.set("to", formatInputDate(new Date(data.range.to))); }
     const suffix = query.toString();
     return `/abnormal-sessions${suffix ? `?${suffix}` : ""}`;
-  }, [effectiveFrom, effectiveTo]);
+  }, [data]);
   const alarmsHref = useMemo(() => {
     const query = new URLSearchParams();
-    if (effectiveFrom) query.set("from", effectiveFrom);
-    if (effectiveTo) query.set("to", effectiveTo);
+    if (data?.range) { query.set("from", formatInputDate(new Date(data.range.from))); query.set("to", formatInputDate(new Date(data.range.to))); }
     const suffix = query.toString();
     return `/alarms${suffix ? `?${suffix}` : ""}`;
-  }, [effectiveFrom, effectiveTo]);
+  }, [data]);
 
   function setDatePreset(days: number) {
     const end = new Date();
@@ -129,7 +128,7 @@ export default function DashboardPage() {
         <form className="filter-form" onSubmit={loadDashboard}>
           <label>ตั้งแต่<input type="date" value={effectiveFrom} onChange={(event) => setFrom(event.target.value)} /></label>
           <label>ถึง<input type="date" value={effectiveTo} onChange={(event) => setTo(event.target.value)} /></label>
-          <button type="submit">อัปเดตภาพรวม</button>
+          <button type="submit" disabled={loading}>อัปเดตภาพรวม</button>
         </form>
         <div className="preset-row" aria-label="ช่วงเวลาที่เลือกได้">
           <span>เลือกช่วงย้อนหลัง แล้วกดอัปเดตภาพรวม</span>
@@ -148,6 +147,7 @@ export default function DashboardPage() {
 
       {data?.kpis && !loading && !error && (
         <>
+          <p className="loaded-period">{rangeLabel(data.range)}</p>
           <section className="grid kpi-grid">
             <article className="card"><p className="card-label">จำนวนการชาร์จ</p><p className="kpi-value">{formatNumber(data.kpis.sessions)}</p></article>
             <article className="card"><p className="card-label">พลังงานที่จ่าย</p><p className="kpi-value">{formatNumber(data.kpis.energyKwh, 1)} <small>kWh</small></p></article>

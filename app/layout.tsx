@@ -3,6 +3,7 @@ import AppHeader from "./components/AppHeader";
 import "./globals.css";
 import "./workspace.css";
 import "./theme.css";
+import "./refinements.css";
 
 export const metadata: Metadata = {
   title: "Meta Mall | TCE ChargeX",

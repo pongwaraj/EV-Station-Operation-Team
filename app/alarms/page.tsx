@@ -2,6 +2,8 @@
 
 import { FormEvent, Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import RecordFilter from "../components/RecordFilter";
+import { inputDate, rangeLabel } from "../../lib/display-date";
 
 type Alarm = {
   id: string;
@@ -23,6 +25,7 @@ type Alarm = {
 };
 
 type AlarmData = {
+  range?: { from: string; to: string };
   message?: string;
   summary?: { total: number; incidents: number; recovered: number; active: number; openIncidents: number; longerThan5Minutes: number; overlappingSessions: number; impactedSessions: number; incidentDurationMinutes: number };
   topCauses?: Array<{ code: string; reason: string; incidentCount: number; alarmRecordCount: number; durationSeconds: number; impactedSessions: number; deviceCount: number; activeIncidents: number }>;
@@ -53,6 +56,13 @@ function AlarmsContent() {
   const [data, setData] = useState<AlarmData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState("all");
+  const visibleItems = (data?.items ?? []).filter(item => {
+    const recovered = item.status.toLowerCase() === "recovered" && !!item.endAt;
+    return (status === "all" || (status === "open" ? !recovered : recovered)) &&
+      [item.code, item.reason, item.chargerName, item.connectorName].join(" ").toLowerCase().includes(query.trim().toLowerCase());
+  });
 
   const loadData = useCallback(async (start: string, end: string) => {
     setLoading(true);
@@ -65,6 +75,7 @@ function AlarmsContent() {
       const result = (await response.json()) as AlarmData;
       if (!response.ok) throw new Error(result.message ?? "alarms unavailable");
       setData(result);
+      if (result.range) { setFrom(inputDate(result.range.from)); setTo(inputDate(result.range.to)); }
     } catch (loadError) {
       console.error("Unable to load alarms", loadError);
       setError("ขณะนี้ยังไม่สามารถอ่านรายการ Alarm ได้");
@@ -95,7 +106,7 @@ function AlarmsContent() {
         <form className="filter-form" onSubmit={onSubmit}>
           <label>ตั้งแต่<input type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></label>
           <label>ถึง<input type="date" value={to} onChange={(event) => setTo(event.target.value)} /></label>
-          <button type="submit">อัปเดตรายการ</button>
+          <button type="submit" disabled={loading}>อัปเดตรายการ</button>
         </form>
         <p className="hint drilldown-note">หนึ่ง Alarm คือหนึ่ง record จากระบบ ไม่ควรนำเวลาของหลาย Alarm ที่ซ้อนกันมาบวกรวมเป็น downtime ของสถานีโดยตรง</p>
       </section>
@@ -103,8 +114,9 @@ function AlarmsContent() {
       {loading && <section className="panel loading-state"><p>กำลังโหลดบันทึก Alarm…</p></section>}
       {error && <section className="panel error-state" role="alert"><strong>{error}</strong><button type="button" onClick={() => void loadData(from, to)}>ลองใหม่</button></section>}
 
-      {data?.summary && !loading && (
+      {data?.summary && !loading && !error && (
         <>
+          <p className="loaded-period">{rangeLabel(data.range)}</p>
           <section className="grid alarm-summary-grid">
             <article className="card"><p className="card-label">Alarm records</p><p className="kpi-value">{formatNumber(data.summary.total)}</p><p className="hint">รายการจากระบบ</p></article>
             <article className="card"><p className="card-label">Technical incidents</p><p className="kpi-value">{formatNumber(data.summary.incidents)}</p><p className="hint">รวม Alarm ต่อเนื่องเป็นเหตุการณ์เดียว</p></article>
@@ -151,7 +163,9 @@ function AlarmsContent() {
               <span className="period-label">Alarm records ที่ทับช่วง session {formatNumber(data.summary.overlappingSessions)} รายการ</span>
             </div>
             <div className="abnormal-list">
-              {(data.items ?? []).map((alarm) => (
+              <RecordFilter query={query} onQuery={setQuery} status={status} onStatus={setStatus} shown={visibleItems.length} total={data.items?.length ?? 0} options={[{ value: "all", label: "ทุกสถานะ" }, { value: "open", label: "ยังไม่ปิด" }, { value: "recovered", label: "Recovered แล้ว" }]} />
+              {!visibleItems.length && <p className="record-empty">ไม่พบรายการที่ตรงกับตัวกรอง ลองเปลี่ยนคำค้น สถานะ หรือช่วงวันที่</p>}
+              {visibleItems.map((alarm) => (
                 <details className="abnormal-item alarm-item" key={alarm.id}>
                   <summary>
                     <span className="abnormal-time">{formatDateTime(alarm.startAt)}</span>
@@ -174,7 +188,6 @@ function AlarmsContent() {
                   </div>
                 </details>
               ))}
-              {!data.items?.length && <p className="hint">ไม่พบ Alarm ในช่วงวันที่เลือก</p>}
             </div>
           </section>
         </>

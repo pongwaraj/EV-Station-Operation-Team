@@ -2,6 +2,8 @@
 
 import { Suspense, FormEvent, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import RecordFilter from "../components/RecordFilter";
+import { inputDate, rangeLabel } from "../../lib/display-date";
 
 type RecoveryStatus = "recovered_5m" | "recovered_30m" | "recovered_same_day" | "recovered_later" | "no_recovery_observed";
 
@@ -38,6 +40,7 @@ type AbnormalSession = {
 };
 
 type AbnormalData = {
+  range?: { from: string; to: string };
   message?: string;
   summary?: {
     total: number;
@@ -113,6 +116,11 @@ function AbnormalSessionsContent() {
   const [data, setData] = useState<AbnormalData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState("all");
+  const visibleItems = (data?.items ?? []).filter(item =>
+    (status === "all" || (status === "pending" ? !item.recoveryAt : !!item.recoveryAt)) &&
+    [item.customerMask, item.chargerName, item.connectorName, item.stopReason, item.alarmSummary].join(" ").toLowerCase().includes(query.trim().toLowerCase()));
 
   const loadData = useCallback(async (start: string, end: string) => {
     setLoading(true);
@@ -125,6 +133,7 @@ function AbnormalSessionsContent() {
       const result = (await response.json()) as AbnormalData;
       if (!response.ok) throw new Error(result.message ?? "abnormal sessions unavailable");
       setData(result);
+      if (result.range) { setFrom(inputDate(result.range.from)); setTo(inputDate(result.range.to)); }
     } catch (loadError) {
       console.error("Unable to load abnormal sessions", loadError);
       setError("ขณะนี้ยังไม่สามารถอ่านรายละเอียดความผิดปกติได้");
@@ -155,7 +164,7 @@ function AbnormalSessionsContent() {
         <form className="filter-form" onSubmit={onSubmit}>
           <label>ตั้งแต่<input type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></label>
           <label>ถึง<input type="date" value={to} onChange={(event) => setTo(event.target.value)} /></label>
-          <button type="submit">อัปเดตรายการ</button>
+          <button type="submit" disabled={loading}>อัปเดตรายการ</button>
         </form>
         <p className="hint drilldown-note">นิยาม “ชาร์จสั้นผิดปกติ” คือระยะเวลาน้อยกว่า 60 วินาที หรือพลังงานน้อยกว่า 1 kWh. “ยังไม่พบการกลับมาสำเร็จ” หมายถึงไม่พบ session ถัดไปที่เข้าเกณฑ์ในข้อมูลปัจจุบัน ไม่ได้แปลว่าสูญเสียลูกค้า</p>
       </section>
@@ -163,8 +172,9 @@ function AbnormalSessionsContent() {
       {loading && <section className="panel loading-state"><p>กำลังตรวจสอบ recovery และ retry…</p></section>}
       {error && <section className="panel error-state" role="alert"><strong>{error}</strong><button type="button" onClick={() => void loadData(from, to)}>ลองใหม่</button></section>}
 
-      {data?.summary && !loading && (
+      {data?.summary && !loading && !error && (
         <>
+          <p className="loaded-period">{rangeLabel(data.range)}</p>
           <section className="grid abnormal-summary-grid">
             <article className="card"><p className="card-label">ชาร์จสั้นผิดปกติ</p><p className="kpi-value">{formatNumber(data.summary.total)}</p><p className="hint">ในช่วงวันที่เลือก</p></article>
             <article className="card"><p className="card-label">กลับมาสำเร็จ ≤ 5 นาที</p><p className="kpi-value">{formatNumber(data.summary.recovered5m)}</p><p className="hint">สัญญาณ retry ระยะสั้น</p></article>
@@ -221,7 +231,8 @@ function AbnormalSessionsContent() {
               <span className="period-label">พบ Alarm ซ้อนช่วง {formatNumber(data.summary.withOverlappingAlarm)} เหตุการณ์</span>
             </div>
             <div className="abnormal-list">
-              {(data.items ?? []).map((item) => (
+              <RecordFilter query={query} onQuery={setQuery} status={status} onStatus={setStatus} shown={visibleItems.length} total={data.items?.length ?? 0} options={[{ value: "all", label: "ทุกสถานะ" }, { value: "pending", label: "ยังไม่พบกลับมาสำเร็จ" }, { value: "recovered", label: "กลับมาสำเร็จแล้ว" }]} />
+              {visibleItems.map((item) => (
                 <details className="abnormal-item" key={item.id}>
                   <summary>
                     <span className="abnormal-time">{formatDateTime(item.startAt)}</span>
@@ -275,7 +286,7 @@ function AbnormalSessionsContent() {
                   </div>
                 </details>
               ))}
-              {!data.items?.length && <p className="hint">ไม่พบการชาร์จสั้นผิดปกติในช่วงวันที่เลือก</p>}
+              {!visibleItems.length && <p className="record-empty">ไม่พบรายการที่ตรงกับตัวกรอง ลองเปลี่ยนคำค้น สถานะ หรือช่วงวันที่</p>}
             </div>
           </section>
         </>
