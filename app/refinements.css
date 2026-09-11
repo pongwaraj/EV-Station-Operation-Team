@@ -44,6 +44,8 @@ summary:focus-visible { border-radius: 8px; }
 .snapshot-capture .snapshot-controls { opacity: .65; }
 .snapshot-capture .snapshot-controls:focus-within, .snapshot-capture .snapshot-controls:hover { opacity: 1; }
 @media screen {
+  html[data-theme="dark"] :is(.incident-table td, .priority-table td, .incident-table td strong, .priority-table td strong) { color: var(--ink); }
+  html[data-theme="dark"] .system-pill.ready { color: #96d8b3; }
   html[data-theme="dark"] :is(.recovery-arrow, .recovery-arrow span) { color: #96d8b3; }
   html[data-theme="dark"] :is(.metric-list span, .metric-action, .abnormal-identity small, .abnormal-usage small) { color: var(--muted); }
   html[data-theme="dark"] :is(.record-filter select, .record-filter input) { background: var(--surface); color: var(--ink); }
