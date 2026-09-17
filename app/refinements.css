@@ -129,6 +129,19 @@ summary:focus-visible { border-radius: 8px; }
 .retention-cadence-item > div:first-child { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .retention-cadence-item strong { font-size: 12px; }
 .retention-cadence-item span { color: var(--muted); font-size: 11px; }
+.partner-retention-readout { margin-top: 18px; }
+.partner-retention-chart { display: flex; align-items: end; gap: 12px; height: 260px; margin-top: 22px; padding: 24px 12px 45px; overflow-x: auto; border-bottom: 1px solid var(--line); background: repeating-linear-gradient(to top, transparent 0, transparent calc(25% - 1px), var(--line) 25%, transparent calc(25% + 1px)); }
+.partner-retention-month { height: 100%; min-width: 82px; display: flex; flex-direction: column; align-items: center; justify-content: end; gap: 5px; position: relative; }
+.partner-retention-month strong { font-size: 10px; color: var(--orange); }
+.partner-retention-month i { display: block; width: 34px; min-height: 5px; background: var(--blue); border-radius: 6px 6px 0 0; }
+.partner-retention-month span { position: absolute; bottom: -29px; color: var(--muted); font-size: 10px; white-space: nowrap; }
+.partner-retention-month small { position: absolute; bottom: -44px; color: var(--muted); font-size: 9px; white-space: nowrap; }
+.partner-retention-cadence { display: grid; gap: 16px; margin-top: 22px; }
+.partner-retention-cadence > div { display: grid; grid-template-columns: 70px 1fr 42px; align-items: center; gap: 10px; font-size: 11px; }
+.partner-retention-cadence strong { text-align: right; }
+.partner-retention-kpi-grid .card { min-height: 148px; }
+html[data-theme="dark"] .partner-retention-month i { background: #a58af4; }
+@media(max-width:600px) { .partner-retention-chart { gap: 7px; padding-left: 0; padding-right: 0; } .partner-retention-month { min-width: 70px; } .partner-retention-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .cadence-track { height: 7px; background: var(--background); border-radius: 99px; overflow: hidden; }
 .cadence-fill { display: block; height: 100%; min-width: 3px; background: var(--blue); border-radius: inherit; transition: width .2s ease; }
 @media screen {

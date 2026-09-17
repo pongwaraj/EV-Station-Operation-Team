@@ -16,6 +16,7 @@ const links = [
   { group: "ลูกค้าและการตลาด", href: "/retention", label: "ลูกค้าประจำ & Retention", icon: "M4 19V5 M4 19h16 M8 15l3-4 3 2 5-7" },
   { group: "ลูกค้าและการตลาด", href: "/customer-value", label: "Customer Value & CRM", icon: "M12 2v20 M17 6.5C16 5.5 14.5 5 12.5 5 10 5 8 6.2 8 8.2c0 2.2 2 3.1 4.8 3.8 2.8.7 4.7 1.6 4.7 3.8 0 2-2 3.2-5 3.2-2.2 0-4-.7-5-2" },
   { group: "ลูกค้าและการตลาด", href: "/partner-insights", label: "Partner Insights", icon: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M17 11h4 M19 9v4" },
+  { group: "ลูกค้าและการตลาด", href: "/partner-retention", label: "Customer Retention", icon: "M20 11a8 8 0 1 1-2.3-5.7 M20 4v7h-7 M4 13v7h7" },
   { group: "สื่อสารกับผู้บริหาร", href: "/snapshot", label: "Snapshot ผู้บริหาร", icon: "M5 3h14v18H5z M8 8h8 M8 12h8 M8 16h5" },
   { group: "จัดการข้อมูล", href: "/imports", label: "นำเข้าข้อมูล", icon: "M12 16V3 M7 8l5-5 5 5 M3 15v6h18v-6" },
 ];
@@ -37,8 +38,8 @@ export default function AppHeader() {
     return () => { active = false; };
   }, []);
 
-  const viewMode = pathname.startsWith("/partner-insights") ? "partner" : "admin";
-  const visibleLinks = viewMode === "partner" ? links.filter((link) => link.href === "/partner-insights") : links;
+  const viewMode = pathname.startsWith("/partner") ? "partner" : "admin";
+  const visibleLinks = viewMode === "partner" ? links.filter((link) => link.href === "/partner-insights" || link.href === "/partner-retention") : links;
 
   return (
     <header className="app-header">

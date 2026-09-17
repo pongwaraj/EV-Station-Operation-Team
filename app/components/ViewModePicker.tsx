@@ -8,18 +8,18 @@ export type ViewMode = "admin" | "partner";
 export default function ViewModePicker() {
   const pathname = usePathname();
   const router = useRouter();
-  const [mode, setMode] = useState<ViewMode>(pathname.startsWith("/partner-insights") ? "partner" : "admin");
+  const [mode, setMode] = useState<ViewMode>(pathname.startsWith("/partner") ? "partner" : "admin");
 
   useEffect(() => {
-    let saved: ViewMode = pathname.startsWith("/partner-insights") ? "partner" : "admin";
+    let saved: ViewMode = pathname.startsWith("/partner") ? "partner" : "admin";
     try {
       const value = localStorage.getItem("tce-view-mode");
       if (value === "admin" || value === "partner") saved = value;
     } catch {}
-    if (pathname.startsWith("/partner-insights")) saved = "partner";
+    if (pathname.startsWith("/partner")) saved = "partner";
     const timer = window.setTimeout(() => setMode(saved), 0);
     try { localStorage.setItem("tce-view-mode", saved); } catch {}
-    if (saved === "partner" && !pathname.startsWith("/partner-insights")) router.replace("/partner-insights");
+    if (saved === "partner" && !pathname.startsWith("/partner")) router.replace("/partner-insights");
     return () => window.clearTimeout(timer);
   }, [pathname, router]);
 
