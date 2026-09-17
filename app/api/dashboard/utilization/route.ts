@@ -98,8 +98,8 @@ export async function GET(request: Request) {
         FROM stations s
         JOIN chargers ch ON ch.station_id = s.id
         LEFT JOIN connectors co ON co.charger_id = ch.id
-        WHERE s.canonical_name = 'tce ev station @meta mall'
-           OR (s.canonical_name = 'สถานีชาร์จ เมต้า มอลล์' AND NOT EXISTS (SELECT 1 FROM stations primary_station WHERE primary_station.canonical_name = 'tce ev station @meta mall'))
+        WHERE (s.canonical_name = 'tce ev station @meta mall'
+           OR (s.canonical_name = 'สถานีชาร์จ เมต้า มอลล์' AND NOT EXISTS (SELECT 1 FROM stations primary_station WHERE primary_station.canonical_name = 'tce ev station @meta mall')))
         ORDER BY ch.source_name NULLS LAST, ch.charger_number NULLS LAST, co.connector_no NULLS LAST
       `),
       db.execute(sql`
@@ -114,8 +114,8 @@ export async function GET(request: Request) {
           COALESCE(SUM(cs.charging_amount_kwh), 0)::numeric AS energy_kwh
         FROM charging_sessions cs
         JOIN stations s ON s.id = cs.station_id
-        WHERE s.canonical_name = 'tce ev station @meta mall'
-           OR (s.canonical_name = 'สถานีชาร์จ เมต้า มอลล์' AND NOT EXISTS (SELECT 1 FROM stations primary_station WHERE primary_station.canonical_name = 'tce ev station @meta mall'))
+        WHERE (s.canonical_name = 'tce ev station @meta mall'
+           OR (s.canonical_name = 'สถานีชาร์จ เมต้า มอลล์' AND NOT EXISTS (SELECT 1 FROM stations primary_station WHERE primary_station.canonical_name = 'tce ev station @meta mall')))
           AND cs.start_at < ${to}
           AND COALESCE(cs.end_at, cs.start_at + COALESCE(cs.duration_seconds, 0) * interval '1 second') > ${from}
         GROUP BY cs.charger_id, cs.connector_id
@@ -131,8 +131,8 @@ export async function GET(request: Request) {
           COALESCE(SUM(cs.charging_amount_kwh), 0)::numeric AS energy_kwh
         FROM charging_sessions cs
         JOIN stations s ON s.id = cs.station_id
-        WHERE s.canonical_name = 'tce ev station @meta mall'
-           OR (s.canonical_name = 'สถานีชาร์จ เมต้า มอลล์' AND NOT EXISTS (SELECT 1 FROM stations primary_station WHERE primary_station.canonical_name = 'tce ev station @meta mall'))
+        WHERE (s.canonical_name = 'tce ev station @meta mall'
+           OR (s.canonical_name = 'สถานีชาร์จ เมต้า มอลล์' AND NOT EXISTS (SELECT 1 FROM stations primary_station WHERE primary_station.canonical_name = 'tce ev station @meta mall')))
           AND cs.start_at < ${to}
           AND COALESCE(cs.end_at, cs.start_at + COALESCE(cs.duration_seconds, 0) * interval '1 second') > ${from}
         GROUP BY 1
