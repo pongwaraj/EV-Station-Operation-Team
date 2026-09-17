@@ -140,6 +140,16 @@ summary:focus-visible { border-radius: 8px; }
 .partner-retention-cadence > div { display: grid; grid-template-columns: 70px 1fr 42px; align-items: center; gap: 10px; font-size: 11px; }
 .partner-retention-cadence strong { text-align: right; }
 .partner-retention-kpi-grid .card { min-height: 148px; }
+.partner-overview-kpi-grid .card { min-height: 148px; }
+.partner-share-card { border-top: 3px solid var(--orange); }
+.partner-overview-trend-panel { margin-top: 18px; }
+.partner-overview-trend-chart { display: flex; align-items: end; gap: 3px; height: 240px; margin-top: 22px; padding: 24px 8px 28px; overflow-x: auto; border-bottom: 1px solid var(--line); background: repeating-linear-gradient(to top, transparent 0, transparent calc(25% - 1px), var(--line) 25%, transparent calc(25% + 1px)); }
+.partner-overview-trend-column { height: 100%; min-width: 17px; display: flex; flex-direction: column; align-items: center; justify-content: end; gap: 4px; }
+.partner-overview-trend-column strong { font-size: 8px; color: var(--muted); min-height: 11px; }
+.partner-overview-trend-column i { display: block; width: 13px; min-height: 2px; background: var(--blue); border-radius: 4px 4px 0 0; }
+.partner-overview-trend-column span { font-size: 8px; color: var(--muted); }
+html[data-theme="dark"] .partner-share-card { border-top-color: #ffad6d; }
+html[data-theme="dark"] .partner-overview-trend-column i { background: #a58af4; }
 html[data-theme="dark"] .partner-retention-month i { background: #a58af4; }
 @media(max-width:600px) { .partner-retention-chart { gap: 7px; padding-left: 0; padding-right: 0; } .partner-retention-month { min-width: 70px; } .partner-retention-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .cadence-track { height: 7px; background: var(--background); border-radius: 99px; overflow: hidden; }
