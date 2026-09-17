@@ -7,14 +7,14 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const links = [
-  { href: "/dashboard", label: "ภาพรวมสถานี", icon: "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z" },
-  { href: "/utilization", label: "Utilization & Headroom", icon: "M4 19V5 M4 19h16 M8 16v-5 M12 16V8 M16 16V3 M20 16v-7" },
-  { href: "/strategy", label: "กลยุทธ์ผู้บริหาร", icon: "M3 20h18 M5 16l4-5 3 3 6-8 M18 6h3v3" },
-  { href: "/abnormal-sessions", label: "ประสบการณ์ลูกค้า", icon: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M17 11l2 2 4-4" },
-  { href: "/retention", label: "ลูกค้าซ้ำ & Churn", icon: "M4 19V5 M4 19h16 M8 15l3-4 3 2 5-7" },
-  { href: "/alarms", label: "สัญญาณเตือน", icon: "M12 3 2 21h20L12 3z M12 9v5 M12 17v1" },
-  { href: "/snapshot", label: "รายงานผู้บริหาร", icon: "M5 3h14v18H5z M8 8h8 M8 12h8 M8 16h5" },
-  { href: "/imports", label: "นำเข้าข้อมูล", icon: "M12 16V3 M7 8l5-5 5 5 M3 15v6h18v-6" },
+  { group: "ภาพรวม", href: "/dashboard", label: "ภาพรวมสถานี", icon: "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z" },
+  { group: "ประสิทธิภาพและคุณภาพบริการ", href: "/utilization", label: "Utilization & Headroom", icon: "M4 19V5 M4 19h16 M8 16v-5 M12 16V8 M16 16V3 M20 16v-7" },
+  { group: "ประสิทธิภาพและคุณภาพบริการ", href: "/abnormal-sessions", label: "ประสบการณ์ลูกค้า", icon: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M17 11l2 2 4-4" },
+  { group: "ประสิทธิภาพและคุณภาพบริการ", href: "/alarms", label: "สัญญาณเตือน", icon: "M12 3 2 21h20L12 3z M12 9v5 M12 17v1" },
+  { group: "ลูกค้าและการตลาด", href: "/strategy", label: "กลยุทธ์การเติบโต", icon: "M3 20h18 M5 16l4-5 3 3 6-8 M18 6h3v3" },
+  { group: "ลูกค้าและการตลาด", href: "/retention", label: "ลูกค้าประจำ & Retention", icon: "M4 19V5 M4 19h16 M8 15l3-4 3 2 5-7" },
+  { group: "สื่อสารกับผู้บริหาร", href: "/snapshot", label: "Snapshot ผู้บริหาร", icon: "M5 3h14v18H5z M8 8h8 M8 12h8 M8 16h5" },
+  { group: "จัดการข้อมูล", href: "/imports", label: "นำเข้าข้อมูล", icon: "M12 16V3 M7 8l5-5 5 5 M3 15v6h18v-6" },
 ];
 
 export default function AppHeader() {
@@ -46,10 +46,13 @@ export default function AppHeader() {
         </Link>
         <div className="nav-caption">STATION WORKSPACE</div>
         <nav className="main-nav" aria-label="เมนูหลัก">
-          {links.map((link) => (
-            <Link aria-current={pathname.startsWith(link.href) ? "page" : undefined} className={`nav-link${pathname.startsWith(link.href) ? " active" : ""}`} href={link.href} key={link.href}>
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={link.icon} /></svg>{link.label}
-            </Link>
+          {links.map((link, index) => (
+            <span className="nav-entry" key={link.href}>
+              {(index === 0 || links[index - 1].group !== link.group) && <span className="nav-group-label">{link.group}</span>}
+              <Link aria-current={pathname.startsWith(link.href) ? "page" : undefined} className={`nav-link${pathname.startsWith(link.href) ? " active" : ""}`} href={link.href}>
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={link.icon} /></svg>{link.label}
+              </Link>
+            </span>
           ))}
         </nav>
         <div className="workspace-station"><span className="section-label">สถานีที่เลือก</span><strong>Meta Mall</strong><small>ข้อมูลจากรายการที่นำเข้า</small></div>
