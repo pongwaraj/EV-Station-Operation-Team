@@ -122,12 +122,22 @@ summary:focus-visible { border-radius: 8px; }
 .retention-method-grid > div:last-child { border-right: 0; }
 .retention-method-grid strong { font-size: 12px; }
 .retention-method-grid span { color: var(--muted); font-size: 11px; }
+.retention-method-note { color: var(--muted); font-size: 11px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.retention-cadence-panel { margin-top: 18px; }
+.retention-cadence-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; margin-top: 22px; }
+.retention-cadence-item { display: grid; gap: 10px; }
+.retention-cadence-item > div:first-child { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.retention-cadence-item strong { font-size: 12px; }
+.retention-cadence-item span { color: var(--muted); font-size: 11px; }
+.cadence-track { height: 7px; background: var(--background); border-radius: 99px; overflow: hidden; }
+.cadence-fill { display: block; height: 100%; min-width: 3px; background: var(--blue); border-radius: inherit; transition: width .2s ease; }
 @media screen {
   html[data-theme="dark"] :is(.retention-table th, .retention-table tbody tr:hover) { background: #202334; }
   html[data-theme="dark"] .retention-average-line span { background: var(--surface); }
   html[data-theme="dark"] .retention-executive-panel { background: #171338; border-color: #171338; }
   html[data-theme="dark"] .retention-bar { background: #a58af4; }
   html[data-theme="dark"] .retention-positive { color: #b8a2ff; }
+  html[data-theme="dark"] .cadence-fill { background: #a58af4; }
 }
 @media(max-width:1000px) { .retention-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .retention-method-grid { grid-template-columns: 1fr; } .retention-method-grid > div { border-right: 0; border-bottom: 1px solid var(--line); padding: 0 0 12px; } .retention-method-grid > div:last-child { border-bottom: 0; } }
-@media(max-width:600px) { .retention-chart { height: 240px; } .retention-bars { gap: 5px; padding-left: 0; padding-right: 0; } .retention-bar-group { min-width: 75px; } .retention-bar { width: 42px; } .retention-period-line { display: grid; gap: 4px; } }
+@media(max-width:600px) { .retention-chart { height: 240px; } .retention-bars { gap: 5px; padding-left: 0; padding-right: 0; } .retention-bar-group { min-width: 75px; } .retention-bar { width: 42px; } .retention-period-line { display: grid; gap: 4px; } .retention-cadence-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; } }

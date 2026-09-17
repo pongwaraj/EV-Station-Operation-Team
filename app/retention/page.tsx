@@ -8,34 +8,35 @@ const DEFAULT_TO = "2026-09-16";
 type MonthlyRetention = {
   month: string;
   sessions: number;
+  meaningfulSessions: number;
   uniqueCustomers: number;
   repeatCustomers: number;
   repeatRate: number;
-  oneTimeCustomers: number;
-  churnEligible: number;
-  churned: number;
-  churnRate: number;
-  churnPending: number;
+  regularCustomers: number;
+  regularRate: number;
 };
 
 type RetentionData = {
   message?: string;
   range?: { from: string; to: string };
-  observationEnd?: string;
-  observationEndDate?: string;
-  methodology?: { repeat: string; churn: string; customerKey: string };
+  methodology?: { repeat: string; regular: string; lapse: string; meaningfulSession: string; customerKey: string };
   kpis?: {
     sessions: number;
-    knownSessions: number;
+    meaningfulSessions: number;
     unknownSessions: number;
     uniqueCustomers: number;
     averageRepeatCustomers: number;
     averageRepeatRate: number;
-    churnRate: number;
-    churned: number;
-    churnEligible: number;
-    maxRepeatCustomers: number;
+    averageRegularCustomers: number;
+    activeRegularCustomers: number;
+    atRiskRegularCustomers: number;
+    lapsedRegularCustomers: number;
+    regularLapseRate: number;
+    medianExpectedGapDays: number;
+    averageSessionsPer30Days: number;
+    maxRegularCustomers: number;
   };
+  cadenceBuckets?: Array<{ label: string; count: number }>;
   monthly?: MonthlyRetention[];
 };
 
@@ -68,7 +69,7 @@ export default function RetentionPage() {
       setData(result);
     } catch (loadError) {
       console.error("Unable to load retention analysis", loadError);
-      setError("ยังไม่สามารถแสดงข้อมูลลูกค้าซ้ำได้ กรุณาตรวจสอบการเชื่อมต่อฐานข้อมูล");
+      setError("ยังไม่สามารถแสดงข้อมูลลูกค้าประจำได้ กรุณาตรวจสอบการเชื่อมต่อฐานข้อมูล");
     } finally {
       setLoading(false);
     }
@@ -79,10 +80,9 @@ export default function RetentionPage() {
     return () => window.clearTimeout(timer);
   }, [loadRetention]);
 
-  const chartMax = useMemo(() => Math.max(data?.kpis?.maxRepeatCustomers ?? 0, data?.kpis?.averageRepeatCustomers ?? 0, 1), [data]);
-  const averageLinePosition = ((data?.kpis?.averageRepeatCustomers ?? 0) / chartMax) * 100;
-  const highestRepeatMonth = useMemo(() => [...(data?.monthly ?? [])].sort((a, b) => b.repeatCustomers - a.repeatCustomers)[0], [data]);
-  const highestChurnMonth = useMemo(() => [...(data?.monthly ?? [])].filter((row) => row.churnEligible > 0).sort((a, b) => b.churnRate - a.churnRate)[0], [data]);
+  const chartMax = useMemo(() => Math.max(data?.kpis?.maxRegularCustomers ?? 0, data?.kpis?.averageRegularCustomers ?? 0, 1), [data]);
+  const averageLinePosition = ((data?.kpis?.averageRegularCustomers ?? 0) / chartMax) * 100;
+  const cadenceMax = useMemo(() => Math.max(...(data?.cadenceBuckets ?? []).map((bucket) => bucket.count), 1), [data]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -93,8 +93,8 @@ export default function RetentionPage() {
     <main className="shell retention-shell">
       <section className="hero compact-hero">
         <p className="eyebrow">CUSTOMER RETENTION</p>
-        <h1>ลูกค้ากลับมาใช้ซ้ำและ Churn</h1>
-        <p className="lede">วิเคราะห์การกลับมาชาร์จซ้ำหลังเปลี่ยนแพลตฟอร์ม เพื่อให้ผู้บริหารเห็นคุณภาพฐานลูกค้าและสัญญาณการหายไปของลูกค้า</p>
+        <h1>ลูกค้าประจำและการกลับมาใช้ซ้ำ</h1>
+        <p className="lede">แยกผู้มาใช้บริการครั้งเดียวออกจากลูกค้าประจำ เพื่อดูรอบการกลับมาชาร์จและสัญญาณที่ควรติดตามได้ตรงกับพฤติกรรมจริงของ Meta Mall</p>
       </section>
 
       <section className="panel retention-filter-panel">
@@ -103,7 +103,7 @@ export default function RetentionPage() {
           <label>ถึง<input type="date" value={to} min={DEFAULT_FROM} max={DEFAULT_TO} onChange={(event) => setTo(event.target.value)} /></label>
           <button type="submit" disabled={loading}>อัปเดตการวิเคราะห์</button>
         </form>
-        <div className="retention-range-note">ช่วงข้อมูลเริ่มต้น: 31 ก.ค. 2569 – 16 ก.ย. 2569 · ใช้ V ID/Customer ID ของ PEA Volta เป็น customer key</div>
+        <div className="retention-range-note">ช่วงข้อมูลเริ่มต้น: 31 ก.ค. 2569 – 16 ก.ย. 2569 · ใช้ V ID/Customer ID ของ PEA Volta เป็น customer key · ตัด retry/ชาร์จสั้นออกจากการวัดลูกค้าประจำ</div>
       </section>
 
       {loading && <section className="panel loading-state"><p>กำลังวิเคราะห์พฤติกรรมการกลับมาใช้ซ้ำ…</p></section>}
@@ -113,55 +113,63 @@ export default function RetentionPage() {
         <>
           <div className="retention-period-line">
             <span>ข้อมูลที่แสดง: {data.range ? `${formatDate(data.range.from)} – ${formatDate(data.range.to)}` : "-"}</span>
-            <span>Churn 7 วันคำนวณได้ถึง {data.observationEndDate ? formatDate(`${data.observationEndDate}T00:00:00+07:00`) : "-"}</span>
+            <span>สถานะลูกค้าประจำอ้างอิงจากรอบการกลับมาชาร์จของแต่ละคน</span>
           </div>
 
           <section className="grid retention-kpi-grid">
-            <article className="card"><p className="card-label">ค่าเฉลี่ยลูกค้ากลับมาใช้ซ้ำ</p><p className="kpi-value">{formatNumber(data.kpis.averageRepeatCustomers, 1)} <small>คน/เดือน</small></p><p className="hint">ชาร์จตั้งแต่ 2 ครั้งขึ้นไปในเดือนเดียวกัน</p></article>
-            <article className="card"><p className="card-label">อัตรากลับมาใช้ซ้ำเฉลี่ย</p><p className="kpi-value">{formatNumber(data.kpis.averageRepeatRate, 1)}<small>%</small></p><p className="hint">เทียบกับลูกค้าที่มีการใช้งานในแต่ละเดือน</p></article>
-            <article className="card"><p className="card-label">Churn rate ภายใน 7 วัน</p><p className="kpi-value">{formatNumber(data.kpis.churnRate, 1)}<small>%</small></p><p className="hint">{formatNumber(data.kpis.churned)} จาก {formatNumber(data.kpis.churnEligible)} คนที่มีข้อมูลติดตามครบ</p></article>
-            <article className="card"><p className="card-label">ลูกค้าที่วิเคราะห์ได้</p><p className="kpi-value">{formatNumber(data.kpis.uniqueCustomers)} <small>คน</small></p><p className="hint">ไม่รวม {formatNumber(data.kpis.unknownSessions)} session ที่ไม่มี Customer ID</p></article>
+            <article className="card"><p className="card-label">ลูกค้าประจำเฉลี่ย</p><p className="kpi-value">{formatNumber(data.kpis.averageRegularCustomers, 1)} <small>คน/เดือน</small></p><p className="hint">อย่างน้อย 3 meaningful sessions ใน 30 วัน</p></article>
+            <article className="card"><p className="card-label">รอบกลับมาชาร์จปกติ</p><p className="kpi-value">{formatNumber(data.kpis.medianExpectedGapDays, 1)} <small>วัน</small></p><p className="hint">ค่ามัธยฐานของรอบลูกค้าประจำ</p></article>
+            <article className="card"><p className="card-label">ลูกค้าประจำที่ยัง Active</p><p className="kpi-value">{formatNumber(data.kpis.activeRegularCustomers)} <small>คน</small></p><p className="hint">ยังอยู่ในรอบการกลับมาชาร์จของตนเอง</p></article>
+            <article className="card"><p className="card-label">Regular lapse rate</p><p className="kpi-value">{formatNumber(data.kpis.regularLapseRate, 1)}<small>%</small></p><p className="hint">{formatNumber(data.kpis.lapsedRegularCustomers)} คนที่ห่างจากรอบปกติเกิน grace period</p></article>
           </section>
 
           <section className="content-grid retention-main-grid">
             <article className="panel">
-              <div className="retention-panel-heading"><div><p className="section-label">MONTHLY REPEAT CUSTOMERS</p><h2>ลูกค้าที่กลับมาใช้ซ้ำในเดือนเดียวกัน</h2></div><span className="chart-legend"><i className="repeat-key" /> ลูกค้าซ้ำ <i className="average-key-retention" /> ค่าเฉลี่ย</span></div>
-              <div className="retention-chart" role="img" aria-label="กราฟจำนวนลูกค้าที่กลับมาใช้ซ้ำรายเดือน เทียบกับค่าเฉลี่ย">
+              <div className="retention-panel-heading"><div><p className="section-label">MONTHLY REGULAR CUSTOMERS</p><h2>ลูกค้าประจำรายเดือน เทียบกับค่าเฉลี่ย</h2></div><span className="chart-legend"><i className="repeat-key" /> ลูกค้าประจำ <i className="average-key-retention" /> ค่าเฉลี่ย</span></div>
+              <div className="retention-chart" role="img" aria-label="กราฟจำนวนลูกค้าประจำรายเดือน เทียบกับค่าเฉลี่ย">
                 <div className="retention-scale"><span>{formatNumber(chartMax)}</span><span>0</span></div>
                 <div className="retention-chart-body">
-                  <div className="retention-average-line" style={{ bottom: `${averageLinePosition}%` }}><span>เฉลี่ย {formatNumber(data.kpis.averageRepeatCustomers, 1)} คน</span></div>
+                  <div className="retention-average-line" style={{ bottom: `${averageLinePosition}%` }}><span>เฉลี่ย {formatNumber(data.kpis.averageRegularCustomers, 1)} คน</span></div>
                   <div className="retention-bars">
-                    {(data.monthly ?? []).map((row) => <div className="retention-bar-group" key={row.month} title={`${formatMonth(row.month)} · ${formatNumber(row.repeatCustomers)} คน · ${formatNumber(row.repeatRate, 1)}%`}><div className="retention-bar-value">{formatNumber(row.repeatCustomers)}</div><div className="retention-bar" style={{ height: `${(row.repeatCustomers / chartMax) * 100}%` }} /><span>{formatMonth(row.month)}</span></div>)}
+                    {(data.monthly ?? []).map((row) => <div className="retention-bar-group" key={row.month} title={`${formatMonth(row.month)} · ${formatNumber(row.regularCustomers)} คน · Regular rate ${formatNumber(row.regularRate, 1)}%`}><div className="retention-bar-value">{formatNumber(row.regularCustomers)}</div><div className="retention-bar" style={{ height: `${(row.regularCustomers / chartMax) * 100}%` }} /><span>{formatMonth(row.month)}</span></div>)}
                   </div>
                 </div>
               </div>
-              <p className="chart-footnote">ค่าเฉลี่ยคิดจากจำนวนลูกค้าซ้ำของแต่ละเดือนในช่วงวันที่เลือก โดยเดือน ก.ค. และ ก.ย. เป็นข้อมูลบางส่วน</p>
+              <p className="chart-footnote">นับเฉพาะ session ที่มีเวลาอย่างน้อย 5 นาทีและพลังงานอย่างน้อย 1 kWh · เดือน ก.ค. และ ก.ย. เป็นข้อมูลบางส่วน</p>
             </article>
 
             <article className="panel retention-executive-panel">
               <p className="section-label">EXECUTIVE READOUT</p>
-              <h2>สิ่งที่ผู้บริหารควรเห็น</h2>
+              <h2>สถานะลูกค้าประจำ ณ วันที่เลือก</h2>
               <div className="retention-readout-list">
-                <div><span>เดือนที่มีลูกค้าซ้ำสูงสุด</span><strong>{highestRepeatMonth ? `${formatMonth(highestRepeatMonth.month)} · ${formatNumber(highestRepeatMonth.repeatCustomers)} คน` : "-"}</strong><small>Repeat rate {highestRepeatMonth ? `${formatNumber(highestRepeatMonth.repeatRate, 1)}%` : "-"}</small></div>
-                <div><span>เดือนที่มี Churn สูงสุด</span><strong>{highestChurnMonth ? `${formatMonth(highestChurnMonth.month)} · ${formatNumber(highestChurnMonth.churnRate, 1)}%` : "รอข้อมูลครบ 7 วัน"}</strong><small>{highestChurnMonth ? `${formatNumber(highestChurnMonth.churned)} คนจาก ${formatNumber(highestChurnMonth.churnEligible)} คน` : "เดือนล่าสุดยังมีช่วงติดตามไม่ครบ"}</small></div>
-                <div><span>ความหมายของ Churn</span><strong>ใช้ครั้งเดียวแล้วไม่กลับมาภายใน 7 วัน</strong><small>เป็นสัญญาณติดตาม ไม่ใช่การยืนยันว่าลูกค้าสูญเสียถาวร</small></div>
+                <div><span>Active</span><strong>{formatNumber(data.kpis.activeRegularCustomers)} คน</strong><small>ยังอยู่ภายในรอบชาร์จปกติ</small></div>
+                <div><span>At risk</span><strong>{formatNumber(data.kpis.atRiskRegularCustomers)} คน</strong><small>เลยรอบปกติแล้ว แต่ยังไม่เกิน grace period 7 วัน</small></div>
+                <div><span>Lapsed regular</span><strong>{formatNumber(data.kpis.lapsedRegularCustomers)} คน · {formatNumber(data.kpis.regularLapseRate, 1)}%</strong><small>ควรตรวจสอบสาเหตุและทำแคมเปญ win-back เฉพาะกลุ่ม</small></div>
+                <div><span>จังหวะที่ควรสื่อสาร</span><strong>เฉลี่ยทุก {formatNumber(data.kpis.medianExpectedGapDays, 1)} วัน</strong><small>อิง observed cadence ไม่ใช่การคาดเดาจากสเปครถ</small></div>
               </div>
             </article>
           </section>
 
+          <section className="panel retention-cadence-panel">
+            <div className="retention-panel-heading"><div><p className="section-label">CUSTOMER CADENCE</p><h2>ลูกค้าประจำกลับมาชาร์จถี่แค่ไหน</h2></div><span className="hint">ใช้กำหนดจังหวะ CRM และติดตามกลุ่มที่เริ่มห่าง</span></div>
+            <div className="retention-cadence-grid">{(data.cadenceBuckets ?? []).map((bucket) => <div className="retention-cadence-item" key={bucket.label}><div><strong>{bucket.label}</strong><span>{formatNumber(bucket.count)} คน</span></div><div className="cadence-track"><i className="cadence-fill" style={{ width: `${(bucket.count / cadenceMax) * 100}%` }} /></div></div>)}</div>
+            <p className="chart-footnote">ข้อมูลนี้สะท้อนรอบการใช้งานจริงของลูกค้าที่สถานี ไม่ใช่ความถี่ที่รถทุกคันจำเป็นต้องชาร์จ</p>
+          </section>
+
           <section className="panel retention-table-panel">
-            <div className="retention-panel-heading"><div><p className="section-label">MONTHLY DETAIL</p><h2>ตารางสรุปเพื่อเทียบแนวโน้ม</h2></div><span className="hint">ตัวเลข Churn ของเดือนล่าสุดจะแสดงเฉพาะกลุ่มที่มีข้อมูลติดตามครบ 7 วัน</span></div>
+            <div className="retention-panel-heading"><div><p className="section-label">MONTHLY DETAIL</p><h2>ตารางสรุปเพื่อเทียบแนวโน้ม</h2></div><span className="hint">ผู้ใช้ครั้งเดียวไม่ถูกตีความเป็น churn</span></div>
             <div className="retention-table-wrap">
               <table className="retention-table">
-                <thead><tr><th>เดือน</th><th>ลูกค้าที่ใช้งาน</th><th>กลับมาใช้ซ้ำ<br /><small>≥ 2 ครั้ง</small></th><th>Repeat rate</th><th>ใช้ครั้งเดียว</th><th>Churned<br /><small>เกิน 7 วัน</small></th><th>Churn rate</th><th>รอติดตาม</th></tr></thead>
-                <tbody>{(data.monthly ?? []).map((row) => <tr key={row.month}><td><strong>{formatMonth(row.month)}</strong></td><td>{formatNumber(row.uniqueCustomers)}</td><td className="retention-positive">{formatNumber(row.repeatCustomers)}</td><td>{formatNumber(row.repeatRate, 1)}%</td><td>{formatNumber(row.oneTimeCustomers)}</td><td className="retention-warning">{formatNumber(row.churned)} / {formatNumber(row.churnEligible)}</td><td>{row.churnEligible ? `${formatNumber(row.churnRate, 1)}%` : "-"}</td><td>{formatNumber(row.churnPending)}</td></tr>)}</tbody>
+                <thead><tr><th>เดือน</th><th>ลูกค้าที่ใช้งาน</th><th>Meaningful sessions</th><th>กลับมาใช้ซ้ำ<br /><small>≥ 2 ครั้ง</small></th><th>Repeat rate</th><th>ลูกค้าประจำ<br /><small>≥ 3 ครั้ง / ≥ 2 สัปดาห์</small></th><th>Regular rate</th></tr></thead>
+                <tbody>{(data.monthly ?? []).map((row) => <tr key={row.month}><td><strong>{formatMonth(row.month)}</strong></td><td>{formatNumber(row.uniqueCustomers)}</td><td>{formatNumber(row.meaningfulSessions)}</td><td className="retention-positive">{formatNumber(row.repeatCustomers)}</td><td>{formatNumber(row.repeatRate, 1)}%</td><td className="retention-positive">{formatNumber(row.regularCustomers)}</td><td>{formatNumber(row.regularRate, 1)}%</td></tr>)}</tbody>
               </table>
             </div>
           </section>
 
           <section className="panel retention-method-panel">
             <p className="section-label">นิยามการวิเคราะห์</p>
-            <div className="retention-method-grid"><div><strong>ลูกค้ากลับมาใช้ซ้ำ</strong><span>{data.methodology?.repeat}</span></div><div><strong>Churn rate</strong><span>{data.methodology?.churn}</span></div><div><strong>ข้อจำกัด</strong><span>รายการหลัง {data.observationEndDate ? formatDate(`${data.observationEndDate}T00:00:00+07:00`) : "วันที่คำนวณได้"} ยังไม่มีข้อมูลครบ 7 วัน จึงแสดงเป็น “รอติดตาม”</span></div></div>
+            <div className="retention-method-grid"><div><strong>Meaningful session</strong><span>{data.methodology?.meaningfulSession}</span></div><div><strong>ลูกค้าประจำ</strong><span>{data.methodology?.regular}</span></div><div><strong>Lapsed regular</strong><span>{data.methodology?.lapse}</span></div></div>
+            <div className="retention-method-note">{data.methodology?.customerKey} · ลูกค้าที่มีเพียง 1 ครั้ง หรือมีแต่รายการสั้น/Retry จะยังไม่ถูกนับเป็นลูกค้าประจำและไม่ถูกนับเป็น churn</div>
           </section>
         </>
       )}
