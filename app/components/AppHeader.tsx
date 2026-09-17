@@ -13,6 +13,7 @@ const links = [
   { group: "ประสิทธิภาพและคุณภาพบริการ", href: "/alarms", label: "สัญญาณเตือน", icon: "M12 3 2 21h20L12 3z M12 9v5 M12 17v1" },
   { group: "ลูกค้าและการตลาด", href: "/strategy", label: "กลยุทธ์การเติบโต", icon: "M3 20h18 M5 16l4-5 3 3 6-8 M18 6h3v3" },
   { group: "ลูกค้าและการตลาด", href: "/retention", label: "ลูกค้าประจำ & Retention", icon: "M4 19V5 M4 19h16 M8 15l3-4 3 2 5-7" },
+  { group: "ลูกค้าและการตลาด", href: "/customer-value", label: "Customer Value & CRM", icon: "M12 2v20 M17 6.5C16 5.5 14.5 5 12.5 5 10 5 8 6.2 8 8.2c0 2.2 2 3.1 4.8 3.8 2.8.7 4.7 1.6 4.7 3.8 0 2-2 3.2-5 3.2-2.2 0-4-.7-5-2" },
   { group: "สื่อสารกับผู้บริหาร", href: "/snapshot", label: "Snapshot ผู้บริหาร", icon: "M5 3h14v18H5z M8 8h8 M8 12h8 M8 16h5" },
   { group: "จัดการข้อมูล", href: "/imports", label: "นำเข้าข้อมูล", icon: "M12 16V3 M7 8l5-5 5 5 M3 15v6h18v-6" },
 ];
