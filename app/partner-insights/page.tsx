@@ -9,6 +9,7 @@ type PartnerData = {
   privacy?: { scope: string; excluded: string[] };
   kpis?: { sessions: number; meaningfulSessions: number; uniqueCustomers: number; unknownCustomerSessions: number; oneTimeCustomers: number; repeatCustomers: number; repeatRate: number; regularCustomers: number; averageSessionsPerCustomer: number };
   recurrence?: Array<{ label: string; customers: number }>;
+  crmSegments?: { newCustomers: number; returningCustomers: number; reactivatedCustomers: number; reactivationGapDays: number };
   weekday?: Array<{ label: string; sessions: number; days: number; averageSessions: number }>;
   hourly?: Array<{ hour: number; sessions: number; averageSessions: number }>;
   phase?: Array<{ label: string; days: number; sessions: number; averageSessions: number }>;
@@ -62,12 +63,12 @@ export default function PartnerInsightsPage() {
   return (
     <main className="shell partner-insights-shell">
       <section className="hero compact-hero">
-        <p className="eyebrow">PARTNER VIEW · COUNTS ONLY</p>
+        <p className="eyebrow">PARTNER VIEW · CUSTOMER BEHAVIOUR</p>
         <h1>Customer Behavior Insights</h1>
-        <p className="lede">ภาพรวมพฤติกรรมการใช้สถานีสำหรับนำเสนอ partner โดยแสดงเฉพาะจำนวนครั้ง กลุ่มลูกค้า และจังหวะ demand ไม่มีรายได้ ราคา พลังงาน หรือรหัสลูกค้า</p>
+        <p className="lede">ภาพรวมพฤติกรรมการใช้สถานีสำหรับนำเสนอ partner ทั้งจำนวนครั้ง กลุ่มลูกค้า และจังหวะ demand เพื่อใช้วางแผนกิจกรรมในพื้นที่</p>
       </section>
 
-      <section className="partner-safe-banner"><span className="partner-safe-icon">✓</span><div><strong>Partner-safe view</strong><p>ข้อมูลในหน้านี้ตัดรายได้ พลังงาน อัตราค่าบริการ และ Customer ID ออก เหลือเฉพาะสถิติรวมเพื่อใช้วางแผนกิจกรรมการตลาด</p></div></section>
+      <section className="partner-safe-banner"><span className="partner-safe-icon">✓</span><div><strong>Partner workspace</strong><p>สถิติรวมสำหรับใช้วางแผนกิจกรรมการตลาดและเพิ่มการกลับมาใช้บริการ</p></div></section>
 
       <section className="panel filter-panel">
         <form className="filter-form" onSubmit={submit}>
@@ -90,6 +91,8 @@ export default function PartnerInsightsPage() {
             <article className="card"><p className="card-label">ลูกค้าที่กลับมาใช้ซ้ำ</p><p className="kpi-value">{formatNumber(data.kpis.repeatRate, 1)}<small>%</small></p><p className="hint">{formatNumber(data.kpis.repeatCustomers)} คน จากผู้ใช้ที่ระบุรหัสได้</p></article>
             <article className="card"><p className="card-label">ลูกค้าประจำ</p><p className="kpi-value">{formatNumber(data.kpis.regularCustomers)}<small> คน</small></p><p className="hint">เฉลี่ย {formatNumber(data.kpis.averageSessionsPerCustomer, 1)} meaningful ครั้ง / คน</p></article>
           </section>
+
+          <section className="panel partner-crm-panel"><div className="decision-heading"><div><p className="section-label">CRM SEGMENTS</p><h2>กลุ่มลูกค้าสำหรับวางแผนกิจกรรม</h2></div><span className="period-label">อิง meaningful session</span></div><div className="partner-crm-grid"><div><span>ลูกค้าใหม่ในช่วงข้อมูล</span><strong>{formatNumber(data.crmSegments?.newCustomers ?? 0)} คน</strong><small>เหมาะกับกิจกรรมสร้างการทดลองใช้</small></div><div><span>ลูกค้าที่กลับมาใช้</span><strong>{formatNumber(data.crmSegments?.returningCustomers ?? 0)} คน</strong><small>เหมาะกับกิจกรรมรักษาความถี่</small></div><div><span>ลูกค้าที่กลับมาหลังหายไป</span><strong>{formatNumber(data.crmSegments?.reactivatedCustomers ?? 0)} คน</strong><small>ห่างจากครั้งก่อนอย่างน้อย {formatNumber(data.crmSegments?.reactivationGapDays ?? 14)} วัน</small></div></div></section>
 
           <section className="panel partner-decision-panel"><p className="section-label">MARKETING READOUT</p><h2>ช่วงเวลาที่เหมาะกับการทำกิจกรรม partner</h2><div className="partner-decision-grid"><div><span>วัน demand สูง</span><strong>{data.decisionSignals?.topWeekday ?? "-"}</strong><small>ใช้วางกิจกรรมที่ต้องการ traffic</small></div><div><span>วัน demand ต่ำ</span><strong>{data.decisionSignals?.lowWeekday ?? "-"}</strong><small>เหมาะกับการทดลองกิจกรรมกระตุ้นการใช้</small></div><div><span>ช่วงเวลาหลัก</span><strong>{(data.decisionSignals?.topHours ?? []).map(hourLabel).join(" · ") || "-"}</strong><small>วางกิจกรรมให้สอดคล้องกับพฤติกรรม</small></div><div><span>ช่วงเวลานอกพีก</span><strong>{(data.decisionSignals?.lowHours ?? []).map(hourLabel).join(" · ") || "-"}</strong><small>เหมาะสำหรับทดสอบ offer โดยไม่ชนพีก</small></div></div></section>
 

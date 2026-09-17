@@ -5,7 +5,6 @@ export const runtime = "nodejs";
 
 const DEFAULT_FROM = "2026-05-18";
 const DEFAULT_TO = "2026-09-16";
-const PARTNER_SHARE_RATE = 0.4;
 
 function bangkokDate(value: string | null, endOfDay = false) {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
@@ -41,7 +40,6 @@ export async function GET(request: Request) {
           COUNT(*) FILTER (WHERE duration_seconds >= 300 AND charging_amount_kwh >= 1)::int AS meaningful_sessions,
           COUNT(DISTINCT customer_identifier_id)::int AS unique_customers,
           COALESCE(SUM(charging_amount_kwh), 0)::numeric AS energy_kwh,
-          COALESCE(SUM(CASE WHEN charging_amount_kwh > 0 THEN charging_amount_kwh ELSE 0 END), 0)::numeric AS eligible_energy_kwh,
           COALESCE(AVG(duration_seconds), 0)::numeric AS avg_duration_seconds,
           COUNT(*) FILTER (WHERE duration_seconds < 60 OR charging_amount_kwh < 1)::int AS short_sessions
         FROM charging_sessions cs
@@ -66,26 +64,22 @@ export async function GET(request: Request) {
 
     const kpi = (kpiResult.rows[0] ?? {}) as Record<string, unknown>;
     const energyKwh = round(kpi.energy_kwh);
-    const eligibleEnergyKwh = round(kpi.eligible_energy_kwh);
     const sessions = numberValue(kpi.sessions);
     const trend = trendResult.rows.map((row) => {
       const item = row as Record<string, unknown>;
       const energy = round(item.energy_kwh);
-      return { date: String(item.date), sessions: numberValue(item.sessions), energyKwh: energy, partnerShareThb: round(energy * PARTNER_SHARE_RATE) };
+      return { date: String(item.date), sessions: numberValue(item.sessions), energyKwh: energy };
     });
     const lastImportAt = (importResult.rows[0] as Record<string, unknown> | undefined)?.last_import_at ?? null;
 
     return Response.json({
       range: { from: from.toISOString(), to: to.toISOString() },
-      privacy: { scope: "partner_safe", excluded: ["gross_revenue", "tce_flat_rate", "customer_id", "vehicle_identity", "order_no"] },
-      settlement: { rateThbPerKwh: PARTNER_SHARE_RATE, basis: "charging_amount_kwh > 0", status: "estimated" },
+      privacy: { scope: "partner_view", excluded: ["customer_id", "vehicle_identity", "order_no"] },
       kpis: {
         sessions,
         meaningfulSessions: numberValue(kpi.meaningful_sessions),
         uniqueCustomers: numberValue(kpi.unique_customers),
         energyKwh,
-        eligibleEnergyKwh,
-        partnerShareThb: round(eligibleEnergyKwh * PARTNER_SHARE_RATE),
         averageKwhPerSession: round(sessions ? energyKwh / sessions : 0),
         averageDurationMinutes: round(numberValue(kpi.avg_duration_seconds) / 60, 1),
         shortSessions: numberValue(kpi.short_sessions),
@@ -95,8 +89,7 @@ export async function GET(request: Request) {
       imports: { lastImportAt },
       methodology: {
         energy: "รวม Charging Amount จาก Order List ที่อยู่ในช่วงวันที่เลือก",
-        partnerShare: "Partner Share = eligible kWh × 0.40 บาท โดยเบื้องต้นนับรายการที่มี Charging Amount มากกว่า 0",
-        note: "ตัวเลขเป็น estimated จนกว่าจะยืนยันกติกาการตัดรายการกับสัญญาเช่าพื้นที่",
+        note: "ใช้เพื่อดูแนวโน้มการใช้งานและ customer behavior ของพื้นที่",
       },
     });
   } catch (error) {

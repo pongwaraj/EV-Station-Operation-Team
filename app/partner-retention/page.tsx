@@ -89,7 +89,7 @@ export default function PartnerRetentionPage() {
       <section className="hero compact-hero">
         <p className="eyebrow">PARTNER VIEW · CUSTOMER RETENTION</p>
         <h1>Customer Retention</h1>
-        <p className="lede">ภาพรวมการกลับมาใช้ซ้ำของลูกค้าเพื่อวางแผนกิจกรรม partner แสดงเฉพาะจำนวน อัตรา และแนวโน้มรวม โดยไม่แสดงรายได้ พลังงาน หรือ Customer ID</p>
+        <p className="lede">ภาพรวมการกลับมาใช้ซ้ำของลูกค้าเพื่อวางแผนกิจกรรม partner แสดงจำนวน อัตรา และแนวโน้มรวมของการใช้บริการ</p>
       </section>
 
       <section className="partner-safe-banner"><span className="partner-safe-icon">✓</span><div><strong>Partner-safe view</strong><p>ใช้ดู customer behavior ระดับภาพรวม เหมาะสำหรับวางแผน campaign, CRM และกิจกรรมดึงลูกค้ากลับมา</p></div></section>
@@ -138,7 +138,7 @@ export default function PartnerRetentionPage() {
             <div className="retention-table-wrap"><table className="retention-table partner-retention-table"><thead><tr><th>เดือน</th><th>ลูกค้าที่ใช้งาน</th><th>ลูกค้าใหม่</th><th>กลับมาใช้ซ้ำ</th><th>Repeat rate</th><th>ลูกค้าประจำ</th><th>Regular rate</th></tr></thead><tbody>{(data.monthly ?? []).map((row) => <tr key={row.month}><td><strong>{formatMonth(row.month)}</strong></td><td>{formatNumber(row.uniqueCustomers)}</td><td>{formatNumber(row.newCustomers)}</td><td className="retention-positive">{formatNumber(row.repeatCustomers)}</td><td>{formatNumber(row.repeatRate, 1)}%</td><td className="retention-positive">{formatNumber(row.regularCustomers)}</td><td>{formatNumber(row.regularRate, 1)}%</td></tr>)}</tbody></table></div>
           </section>
 
-          <section className="panel partner-method-panel"><p className="section-label">นิยามสำหรับ partner</p><p>Meaningful session ใช้สำหรับแยกรายการสั้น/Retry ออกจากพฤติกรรมการกลับมาใช้ซ้ำ · ลูกค้าประจำต้องมีอย่างน้อย 3 ครั้งใน rolling 30 วัน และกระจายอย่างน้อย 2 สัปดาห์</p><p className="chart-footnote">หน้านี้ไม่แสดงรายได้ พลังงาน อัตราค่าบริการ หรือ Customer ID · การเปลี่ยนแพลตฟอร์ม One Charge เป็น PEA Volta ไม่ถูกใช้เป็นเงื่อนไขตัดข้อมูล</p></section>
+          <section className="panel partner-method-panel"><p className="section-label">นิยามสำหรับ partner</p><p>Meaningful session ใช้สำหรับแยกรายการสั้น/Retry ออกจากพฤติกรรมการกลับมาใช้ซ้ำ · ลูกค้าประจำต้องมีอย่างน้อย 3 ครั้งใน rolling 30 วัน และกระจายอย่างน้อย 2 สัปดาห์</p><p className="chart-footnote">การเปลี่ยนแพลตฟอร์ม One Charge เป็น PEA Volta ไม่ถูกใช้เป็นเงื่อนไขตัดข้อมูล</p></section>
         </>
       )}
     </main>

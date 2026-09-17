@@ -29,6 +29,7 @@ function round(value: number, digits = 1) {
 }
 
 function parseLocalDate(value: string) { return new Date(`${value}T00:00:00Z`); }
+function daysBetween(start: string, end: string) { return Math.max(0, Math.round((parseLocalDate(end).getTime() - parseLocalDate(start).getTime()) / 86400000)); }
 function weekKey(value: string) {
   const date = parseLocalDate(value);
   const day = date.getUTCDay();
@@ -121,6 +122,18 @@ export async function GET(request: Request) {
       current.push(row);
       allCustomerRows.set(row.customerId as string, current);
     });
+    const crmSegments = { newCustomers: 0, returningCustomers: 0, reactivatedCustomers: 0, reactivationGapDays: 14 };
+    byCustomer.forEach((customerRows, customerId) => {
+      const firstReportDate = [...customerRows].sort((a, b) => a.localDate.localeCompare(b.localDate))[0]?.localDate;
+      const previousRows = (allCustomerRows.get(customerId) ?? []).filter((row) => row.localDate < fromValue).sort((a, b) => a.localDate.localeCompare(b.localDate));
+      if (!firstReportDate || !previousRows.length) {
+        crmSegments.newCustomers += 1;
+        return;
+      }
+      crmSegments.returningCustomers += 1;
+      const previousDate = previousRows[previousRows.length - 1].localDate;
+      if (daysBetween(previousDate, firstReportDate) >= crmSegments.reactivationGapDays) crmSegments.reactivatedCustomers += 1;
+    });
     const regularCustomers = new Set([...allCustomerRows.entries()].filter(([, customerRows]) => qualifiesAsRegular(customerRows)).map(([customerId]) => customerId));
     const customerCounts = [...byCustomer.values()].map((customerRows) => customerRows.length);
     const days = dateKeys(fromValue, toValue);
@@ -173,6 +186,7 @@ export async function GET(request: Request) {
         { label: "ใช้ 3–4 ครั้ง", customers: customerCounts.filter((count) => count >= 3 && count <= 4).length },
         { label: "ใช้ 5 ครั้งขึ้นไป", customers: customerCounts.filter((count) => count >= 5).length },
       ],
+      crmSegments,
       weekday,
       hourly,
       phase,
