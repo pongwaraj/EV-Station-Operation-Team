@@ -189,6 +189,7 @@ export async function GET(request: Request) {
         sessions: monthRows.length,
         meaningfulSessions: monthMeaningfulRows.length,
         uniqueCustomers: new Set(monthRows.map((row) => row.customer_id)).size,
+        meaningfulCustomers: byCustomer.size,
         newCustomers,
         returningCustomers: Math.max(0, byCustomer.size - newCustomers),
         repeatCustomers,
