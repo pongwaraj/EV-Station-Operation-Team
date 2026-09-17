@@ -22,6 +22,7 @@ type RetentionData = {
   message?: string;
   range?: { from: string; to: string };
   observationEnd?: string;
+  observationEndDate?: string;
   methodology?: { repeat: string; churn: string; customerKey: string };
   kpis?: {
     sessions: number;
@@ -112,7 +113,7 @@ export default function RetentionPage() {
         <>
           <div className="retention-period-line">
             <span>ข้อมูลที่แสดง: {data.range ? `${formatDate(data.range.from)} – ${formatDate(data.range.to)}` : "-"}</span>
-            <span>Churn 7 วันคำนวณได้ถึง {data.observationEnd ? formatDate(data.observationEnd) : "-"}</span>
+            <span>Churn 7 วันคำนวณได้ถึง {data.observationEndDate ? formatDate(`${data.observationEndDate}T00:00:00+07:00`) : "-"}</span>
           </div>
 
           <section className="grid retention-kpi-grid">
@@ -160,7 +161,7 @@ export default function RetentionPage() {
 
           <section className="panel retention-method-panel">
             <p className="section-label">นิยามการวิเคราะห์</p>
-            <div className="retention-method-grid"><div><strong>ลูกค้ากลับมาใช้ซ้ำ</strong><span>{data.methodology?.repeat}</span></div><div><strong>Churn rate</strong><span>{data.methodology?.churn}</span></div><div><strong>ข้อจำกัด</strong><span>เดือน ก.ย. เป็นข้อมูลถึง 16 ก.ย. และรายการหลัง 9 ก.ย. ยังไม่มีข้อมูลครบ 7 วัน จึงแสดงเป็น “รอติดตาม”</span></div></div>
+            <div className="retention-method-grid"><div><strong>ลูกค้ากลับมาใช้ซ้ำ</strong><span>{data.methodology?.repeat}</span></div><div><strong>Churn rate</strong><span>{data.methodology?.churn}</span></div><div><strong>ข้อจำกัด</strong><span>รายการหลัง {data.observationEndDate ? formatDate(`${data.observationEndDate}T00:00:00+07:00`) : "วันที่คำนวณได้"} ยังไม่มีข้อมูลครบ 7 วัน จึงแสดงเป็น “รอติดตาม”</span></div></div>
           </section>
         </>
       )}

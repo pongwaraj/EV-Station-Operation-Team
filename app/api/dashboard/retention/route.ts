@@ -36,6 +36,12 @@ function monthKeys(from: Date, to: Date) {
   return keys;
 }
 
+function subtractLocalDays(value: string, days: number) {
+  const [year, month, day] = value.split("-").map(Number);
+  const result = new Date(Date.UTC(year, month - 1, day - days));
+  return result.toISOString().slice(0, 10);
+}
+
 function average(values: number[]) {
   return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
 }
@@ -118,6 +124,7 @@ export async function GET(request: Request) {
     return Response.json({
       range: { from: from.toISOString(), to: to.toISOString() },
       observationEnd: new Date(observationEnd).toISOString(),
+      observationEndDate: subtractLocalDays(toValue, 7),
       methodology: {
         repeat: "ลูกค้าที่มีการชาร์จตั้งแต่ 2 ครั้งขึ้นไปภายในเดือนเดียวกัน",
         churn: "ลูกค้าที่ชาร์จครั้งเดียวในเดือน และไม่มีการชาร์จซ้ำภายใน 7 วันหลังครั้งแรก",
