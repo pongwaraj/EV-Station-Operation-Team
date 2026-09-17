@@ -165,6 +165,12 @@ export async function GET(request: Request) {
     const reportRows = knownRows.filter((row) => new Date(row.start_at).getTime() >= from.getTime());
     const reportMeaningfulRows = meaningfulRows.filter((row) => new Date(row.start_at).getTime() >= from.getTime());
     const months = monthKeys(from, to);
+    const firstMeaningfulByCustomer = new Map<string, SessionRow>();
+    meaningfulRows.forEach((row) => {
+      if (!row.customer_id) return;
+      const first = firstMeaningfulByCustomer.get(row.customer_id);
+      if (!first || new Date(row.start_at).getTime() < new Date(first.start_at).getTime()) firstMeaningfulByCustomer.set(row.customer_id, row);
+    });
 
     const monthly = months.map((month) => {
       const monthRows = reportRows.filter((row) => row.month === month);
@@ -177,11 +183,14 @@ export async function GET(request: Request) {
       });
       const repeatCustomers = [...byCustomer.values()].filter((customerRows) => customerRows.length >= 2).length;
       const regularCustomers = [...byCustomer.values()].filter((customerRows) => customerRows.length >= REGULAR_MIN_SESSIONS && new Set(customerRows.map((row) => weekKey(row.local_date))).size >= REGULAR_MIN_WEEKS).length;
+      const newCustomers = [...byCustomer.keys()].filter((customerId) => firstMeaningfulByCustomer.get(customerId)?.month === month).length;
       return {
         month,
         sessions: monthRows.length,
         meaningfulSessions: monthMeaningfulRows.length,
         uniqueCustomers: new Set(monthRows.map((row) => row.customer_id)).size,
+        newCustomers,
+        returningCustomers: Math.max(0, byCustomer.size - newCustomers),
         repeatCustomers,
         repeatRate: round(byCustomer.size ? (repeatCustomers / byCustomer.size) * 100 : 0),
         regularCustomers,

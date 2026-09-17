@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 const links = [
   { href: "/dashboard", label: "ภาพรวมสถานี", icon: "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z" },
   { href: "/utilization", label: "Utilization & Headroom", icon: "M4 19V5 M4 19h16 M8 16v-5 M12 16V8 M16 16V3 M20 16v-7" },
+  { href: "/strategy", label: "กลยุทธ์ผู้บริหาร", icon: "M3 20h18 M5 16l4-5 3 3 6-8 M18 6h3v3" },
   { href: "/abnormal-sessions", label: "ประสบการณ์ลูกค้า", icon: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M17 11l2 2 4-4" },
   { href: "/retention", label: "ลูกค้าซ้ำ & Churn", icon: "M4 19V5 M4 19h16 M8 15l3-4 3 2 5-7" },
   { href: "/alarms", label: "สัญญาณเตือน", icon: "M12 3 2 21h20L12 3z M12 9v5 M12 17v1" },
