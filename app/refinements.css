@@ -303,3 +303,20 @@ summary:focus-visible { border-radius: 8px; }
 .strategy-pattern-insight small { color: var(--muted); font-size: 10px; line-height: 1.6; }
 @media screen { html[data-theme="dark"] .strategy-pattern-insight { background: #202334; } }
 @media(max-width:600px) { .strategy-weekday-row { grid-template-columns: 62px minmax(50px, 1fr) 65px; } .strategy-weekday-row > span:nth-of-type(2), .strategy-weekday-row small { display: none; } .strategy-phase-grid > div { grid-template-columns: 70px 80px 1fr; } .strategy-phase-grid em { display: none; } }
+.strategy-hourly-panel { margin-top: 18px; }
+.strategy-hourly-chart { height: 230px; display: flex; align-items: end; gap: 5px; position: relative; margin-top: 25px; padding: 10px 4px 30px; border-bottom: 1px solid var(--line); overflow-x: auto; background: repeating-linear-gradient(to top, transparent 0, transparent calc(25% - 1px), var(--line) 25%, transparent calc(25% + 1px)); }
+.strategy-hourly-column { height: 100%; min-width: 24px; flex: 1 0 24px; display: flex; align-items: end; justify-content: center; position: relative; z-index: 1; }
+.strategy-hourly-bar { width: 17px; min-height: 2px; background: var(--blue); border-radius: 5px 5px 0 0; }
+.strategy-hourly-bar.peak { background: var(--orange); }
+.strategy-hourly-column > span { position: absolute; bottom: -23px; color: var(--muted); font-size: 9px; }
+.strategy-hourly-gridline { position: absolute; left: 0; right: 0; top: 25%; border-top: 1px dashed var(--line); }
+.strategy-hourly-gridline.middle { top: 50%; }
+.strategy-hourly-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 35px; }
+.strategy-hourly-summary > div { padding: 13px 15px; background: var(--background); border-radius: 8px; }
+.strategy-hourly-summary span, .strategy-hourly-summary strong, .strategy-hourly-summary small { display: block; }
+.strategy-hourly-summary span { color: var(--muted); font-size: 10px; }
+.strategy-hourly-summary strong { color: var(--ink); margin: 3px 0; font-size: 13px; }
+.strategy-hourly-summary small { color: var(--muted); font-size: 10px; line-height: 1.6; }
+@media screen { html[data-theme="dark"] .strategy-hourly-summary > div { background: #202334; } }
+@media(max-width:800px) { .strategy-hourly-summary { grid-template-columns: 1fr; gap: 9px; } }
+@media(max-width:600px) { .strategy-hourly-column { min-width: 19px; flex-basis: 19px; } .strategy-hourly-bar { width: 13px; } }

@@ -128,6 +128,17 @@ export default function StrategyPage() {
   const highestMonthPhase = useMemo(() => [...monthPhasePatterns].sort((a, b) => b.averageSessions - a.averageSessions)[0], [monthPhasePatterns]);
   const lowestMonthPhase = useMemo(() => [...monthPhasePatterns].sort((a, b) => a.averageSessions - b.averageSessions)[0], [monthPhasePatterns]);
   const maxWeekdaySessions = useMemo(() => Math.max(...weekdayPatterns.map((row) => row.averageSessions), 1), [weekdayPatterns]);
+  const hourlyPatterns = useMemo(() => {
+    const totalDays = Math.max(1, dailyRows.length);
+    const byHour = new Map((data?.overview.peakHours ?? []).map((row) => [row.hour, row]));
+    return Array.from({ length: 24 }, (_, hour) => {
+      const row = byHour.get(hour);
+      return { hour, sessions: row?.sessions ?? 0, energyKwh: row?.energyKwh ?? 0, averageSessions: (row?.sessions ?? 0) / totalDays, averageEnergyKwh: (row?.energyKwh ?? 0) / totalDays };
+    });
+  }, [data, dailyRows]);
+  const topHourly = useMemo(() => [...hourlyPatterns].sort((a, b) => b.sessions - a.sessions).slice(0, 3), [hourlyPatterns]);
+  const lowHourly = useMemo(() => [...hourlyPatterns].sort((a, b) => a.sessions - b.sessions).slice(0, 3), [hourlyPatterns]);
+  const maxHourlySessions = useMemo(() => Math.max(...hourlyPatterns.map((row) => row.sessions), 1), [hourlyPatterns]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -200,6 +211,12 @@ export default function StrategyPage() {
               <div className="strategy-phase-grid">{monthPhasePatterns.map((row) => <div key={row.key}><strong>{row.label}</strong><span>{formatNumber(row.averageSessions, 1)} ครั้ง/วัน</span><small>{formatNumber(row.averageEnergyKwh, 1)} kWh/วัน · Utilization {formatNumber(row.averageUtilization, 1)}%</small><em>{formatNumber(row.days)} วันในตัวอย่าง</em></div>)}</div>
               <div className="strategy-pattern-insight"><span>สัญญาณเพื่อวางแผน</span><strong>{highestMonthPhase?.label ?? "-"} มีค่าเฉลี่ยสูงสุด</strong><small>ต่ำสุดคือ {lowestMonthPhase?.label ?? "-"} · ควรทดสอบแคมเปญต่างกันตามช่วงเดือนและวัดผลแบบเทียบวันในสัปดาห์</small></div>
             </article>
+          </section>
+
+          <section className="panel strategy-hourly-panel">
+            <div className="strategy-section-heading"><div><p className="section-label">HOURLY DEMAND PATTERN</p><h2>ค่าเฉลี่ยการชาร์จรายชั่วโมง</h2></div><span className="hint">แสดง session ที่เริ่มในแต่ละชั่วโมง เฉลี่ยต่อวันของช่วงที่เลือก</span></div>
+            <div className="strategy-hourly-chart" role="img" aria-label="กราฟจำนวน session ตามชั่วโมง"><div className="strategy-hourly-gridline" /><div className="strategy-hourly-gridline middle" />{hourlyPatterns.map((row) => <div className="strategy-hourly-column" key={row.hour} title={`${String(row.hour).padStart(2, "0")}:00 · ${formatNumber(row.sessions)} sessions · เฉลี่ย ${formatNumber(row.averageSessions, 1)} ครั้ง/วัน · ${formatNumber(row.energyKwh, 1)} kWh`}><div className={`strategy-hourly-bar ${row.hour === topHourly[0]?.hour ? "peak" : ""}`} style={{ height: `${Math.max(2, (row.sessions / maxHourlySessions) * 100)}%` }} /><span>{row.hour % 2 === 0 ? String(row.hour).padStart(2, "0") : ""}</span></div>)}</div>
+            <div className="strategy-hourly-summary"><div><span>Peak hours</span><strong>{topHourly.map((row) => `${String(row.hour).padStart(2, "0")}:00`).join(" · ")}</strong><small>เฉลี่ยรวม {formatNumber(topHourly.reduce((sum, row) => sum + row.averageSessions, 0), 1)} ครั้ง/วันใน 3 ชั่วโมงสูงสุด</small></div><div><span>Low-load hours</span><strong>{lowHourly.map((row) => `${String(row.hour).padStart(2, "0")}:00`).join(" · ")}</strong><small>เหมาะสำหรับทดสอบ offer เพื่อดึง demand เพิ่ม</small></div><div><span>คำแนะนำ</span><strong>ทำแคมเปญช่วง Low-load</strong><small>หลีกเลี่ยงการลดราคาใน Peak hours และวัดผลด้วย session/hour + kWh/hour</small></div></div>
           </section>
 
           <section className="panel strategy-playbook-panel"><p className="section-label">CAMPAIGN PLAYBOOK</p><h2>กรอบแคมเปญที่ผู้บริหารใช้ตัดสินใจได้</h2><div className="strategy-playbook-grid"><div className={utilization.utilization < 10 ? "priority" : ""}><span>Acquisition</span><strong>ดึงลูกค้าใหม่</strong><p>เหมาะเมื่อ utilization ต่ำกว่า 10% ใช้พันธมิตรในพื้นที่, ป้ายทางเข้า, map visibility และ offer สำหรับการชาร์จครั้งแรก</p><small>Success metric: New customer และ First-to-second charge conversion</small></div><div className={utilization.utilization >= 10 && utilization.utilization < TARGET_UTILIZATION ? "priority" : ""}><span>Retention</span><strong>กระตุ้นการกลับมาซ้ำ</strong><p>เหมาะกับสถานีที่เริ่มผ่าน 10% ใช้ reminder ตามรอบ 5 วัน, reward ครั้งที่ 2 และ win-back สำหรับ At risk/Lapsed</p><small>Success metric: Repeat rate, Regular customers และ Lapse rate</small></div><div className={utilization.utilization >= TARGET_UTILIZATION ? "priority" : ""}><span>Monetization</span><strong>เพิ่มรายได้ต่อ capacity</strong><p>เมื่อ utilization แตะ 15% ให้ทดสอบราคา/แพ็กเกจช่วงนอกพีก และพิจารณา capacity เพิ่มเมื่อ demand สม่ำเสมอ</p><small>Success metric: kWh/session, Revenue/connector-hour และ queue risk</small></div></div></section>
