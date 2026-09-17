@@ -104,6 +104,9 @@ export async function GET(request: Request) {
     }));
     const reportRows = rows.filter((row) => new Date(row.startAt).getTime() >= from.getTime());
     const reportMeaningful = reportRows.filter(meaningful);
+    // Partner trend charts must reconcile to the Order Type total shown in the KPI.
+    // Meaningful sessions remain the basis for repeat/regular-customer analysis only.
+    const trendRows = reportRows;
     const knownMeaningful = rows.filter((row) => row.customerId && meaningful(row));
     const byCustomer = new Map<string, Row[]>();
     reportMeaningful.forEach((row) => {
@@ -122,7 +125,7 @@ export async function GET(request: Request) {
     const customerCounts = [...byCustomer.values()].map((customerRows) => customerRows.length);
     const days = dateKeys(fromValue, toValue);
     const sessionsByDate = new Map<string, number>();
-    reportMeaningful.forEach((row) => sessionsByDate.set(row.localDate, (sessionsByDate.get(row.localDate) ?? 0) + 1));
+    trendRows.forEach((row) => sessionsByDate.set(row.localDate, (sessionsByDate.get(row.localDate) ?? 0) + 1));
     const weekdayLabels = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"];
     const weekday = weekdayLabels.map((label, index) => {
       const matchingDays = days.filter((date) => ((parseLocalDate(date).getUTCDay() + 6) % 7) === index);
@@ -130,7 +133,7 @@ export async function GET(request: Request) {
       return { label, sessions, days: matchingDays.length, averageSessions: matchingDays.length ? round(sessions / matchingDays.length, 1) : 0 };
     });
     const hourlyCounts = Array.from({ length: 24 }, (_, hour) => ({ hour, sessions: 0 }));
-    reportMeaningful.forEach((row) => {
+    trendRows.forEach((row) => {
       const hour = new Date(row.startAt).toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "Asia/Bangkok" });
       const hourNumber = Number(hour) % 24;
       hourlyCounts[hourNumber].sessions += 1;
@@ -183,7 +186,7 @@ export async function GET(request: Request) {
         meaningful: `นับ session ที่มี Duration ≥ ${MEANINGFUL_MIN_SECONDS / 60} นาที และพลังงาน ≥ ${MEANINGFUL_MIN_KWH} kWh เพื่อไม่นับ retry/รายการสั้นเป็นพฤติกรรมหลัก`,
         repeat: "ลูกค้าที่มี meaningful session ตั้งแต่ 2 ครั้งขึ้นไปในช่วงวันที่เลือก",
         regular: `ลูกค้าที่มีอย่างน้อย ${REGULAR_MIN_SESSIONS} meaningful sessions ใน rolling 30 วัน และกระจายอย่างน้อย ${REGULAR_MIN_WEEKS} สัปดาห์`,
-        note: "หน้านี้แสดงเฉพาะจำนวนและ pattern ไม่มีรายได้ พลังงาน ราคา หรือรหัสลูกค้า",
+        note: "กราฟ weekday/hour/phase ใช้ Order Type ทั้งหมดในช่วงวันที่เลือก ส่วน repeat/regular ใช้ meaningful session เพื่อแยก retry/รายการสั้นออกจากพฤติกรรมการใช้ซ้ำ",
       },
     });
   } catch (error) {
