@@ -130,7 +130,7 @@ export async function GET(request: Request) {
         crmSegments.newCustomers += 1;
         return;
       }
-      crmSegments.returningCustomers += 1;
+      crmSegments.returningCustomers = customerRows.length >= 2 ? crmSegments.returningCustomers + 1 : crmSegments.returningCustomers;
       const previousDate = previousRows[previousRows.length - 1].localDate;
       if (daysBetween(previousDate, firstReportDate) >= crmSegments.reactivationGapDays) crmSegments.reactivatedCustomers += 1;
     });
