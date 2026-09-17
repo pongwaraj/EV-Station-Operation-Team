@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import ThemePicker from "./ThemePicker";
+import ViewModePicker from "./ViewModePicker";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -36,28 +37,32 @@ export default function AppHeader() {
     return () => { active = false; };
   }, []);
 
+  const viewMode = pathname.startsWith("/partner-insights") ? "partner" : "admin";
+  const visibleLinks = viewMode === "partner" ? links.filter((link) => link.href === "/partner-insights") : links;
+
   return (
     <header className="app-header">
       <div className="app-header-inner">
-        <Link className="brand" href="/dashboard" aria-label="ไปยังภาพรวมสถานี Meta Mall">
+        <Link className="brand" href={viewMode === "partner" ? "/partner-insights" : "/dashboard"} aria-label="ไปยังภาพรวมสถานี Meta Mall">
           <Image className="brand-logo" src="/tce-logo.png" alt="TCE" width={64} height={42} priority />
           <span>
             <span className="brand-name">TCE ChargeX</span>
             <span className="brand-subtitle">Meta Mall</span>
           </span>
         </Link>
-        <div className="nav-caption">STATION WORKSPACE</div>
+        <div className="nav-caption">{viewMode === "partner" ? "PARTNER WORKSPACE" : "STATION WORKSPACE"}</div>
         <nav className="main-nav" aria-label="เมนูหลัก">
-          {links.map((link, index) => (
+          {visibleLinks.map((link, index) => (
             <span className="nav-entry" key={link.href}>
-              {(index === 0 || links[index - 1].group !== link.group) && <span className="nav-group-label">{link.group}</span>}
+              {(index === 0 || visibleLinks[index - 1].group !== link.group) && <span className="nav-group-label">{link.group}</span>}
               <Link aria-current={pathname.startsWith(link.href) ? "page" : undefined} className={`nav-link${pathname.startsWith(link.href) ? " active" : ""}`} href={link.href}>
                 <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={link.icon} /></svg>{link.label}
               </Link>
             </span>
           ))}
         </nav>
-        <div className="workspace-station"><span className="section-label">สถานีที่เลือก</span><strong>Meta Mall</strong><small>ข้อมูลจากรายการที่นำเข้า</small></div>
+        <div className="workspace-station"><span className="section-label">มุมมองที่เลือก</span><strong>{viewMode === "partner" ? "Partner view" : "Admin view"}</strong><small>{viewMode === "partner" ? "แสดงเฉพาะจำนวนและพฤติกรรม" : "ข้อมูลภายใน TCE"}</small></div>
+        <ViewModePicker />
         <ThemePicker />
         <span className={`system-pill ${health}`}><span className="system-dot" aria-hidden="true" />{health === "ready" ? "ข้อมูลพร้อมใช้งาน" : health === "pending" ? "รอเชื่อมต่อข้อมูล" : "กำลังตรวจสอบ"}</span>
       </div>

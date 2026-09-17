@@ -3,7 +3,7 @@ import { getDb } from "../../../../lib/db/client";
 
 export const runtime = "nodejs";
 
-const DEFAULT_FROM = "2026-07-31";
+const DEFAULT_FROM = "2026-05-18";
 const DEFAULT_TO = "2026-09-16";
 const LOOKBACK_DAYS = 60;
 const MEANINGFUL_MIN_SECONDS = 300;

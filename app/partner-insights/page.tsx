@@ -23,7 +23,7 @@ function formatNumber(value: number, maximumFractionDigits = 0) {
 function hourLabel(hour: number) { return `${String(hour).padStart(2, "0")}:00`; }
 
 export default function PartnerInsightsPage() {
-  const [from, setFrom] = useState("2026-07-31");
+  const [from, setFrom] = useState("2026-05-18");
   const [to, setTo] = useState("2026-09-16");
   const [data, setData] = useState<PartnerData | null>(null);
   const [loading, setLoading] = useState(true);
