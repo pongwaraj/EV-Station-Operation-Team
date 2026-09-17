@@ -145,7 +145,7 @@ export default function RetentionPage() {
                 <div><span>Active</span><strong>{formatNumber(data.kpis.activeRegularCustomers)} คน</strong><small>ยังอยู่ภายในรอบชาร์จปกติ</small></div>
                 <div><span>At risk</span><strong>{formatNumber(data.kpis.atRiskRegularCustomers)} คน</strong><small>เลยรอบปกติแล้ว แต่ยังไม่เกิน grace period 7 วัน</small></div>
                 <div><span>Lapsed regular</span><strong>{formatNumber(data.kpis.lapsedRegularCustomers)} คน · {formatNumber(data.kpis.regularLapseRate, 1)}%</strong><small>ควรตรวจสอบสาเหตุและทำแคมเปญ win-back เฉพาะกลุ่ม</small></div>
-                <div><span>จังหวะที่ควรสื่อสาร</span><strong>เฉลี่ยทุก {formatNumber(data.kpis.medianExpectedGapDays, 1)} วัน</strong><small>อิง observed cadence ไม่ใช่การคาดเดาจากสเปครถ</small></div>
+                <div><span>ความถี่การใช้งานของลูกค้าประจำ</span><strong>{formatNumber(data.kpis.averageSessionsPer30Days, 1)} session / 30 วัน · ทุก {formatNumber(data.kpis.medianExpectedGapDays, 1)} วัน</strong><small>อิง observed cadence ไม่ใช่การคาดเดาจากสเปครถ</small></div>
               </div>
             </article>
           </section>
