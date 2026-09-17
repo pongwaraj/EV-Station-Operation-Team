@@ -41,10 +41,6 @@ function dateKeys(from: string, to: string) {
   return keys;
 }
 
-function monthFromDate(value: string) {
-  return value.slice(0, 7);
-}
-
 export default function StrategyPage() {
   const [from, setFrom] = useState(DEFAULT_FROM);
   const [to, setTo] = useState(DEFAULT_TO);
@@ -95,23 +91,43 @@ export default function StrategyPage() {
   const aboveTargetDays = dailyTrend.filter((row) => row.utilization >= TARGET_UTILIZATION).length;
   const strategyState = (utilization?.utilization ?? 0) < 10 ? "สร้างฐานลูกค้า" : (utilization?.utilization ?? 0) < TARGET_UTILIZATION ? "เร่งการกลับมาใช้ซ้ำ" : "ขยายรายได้";
 
-  const monthlyUtilization = useMemo(() => {
+  const dailyRows = useMemo(() => {
     if (!data?.utilization.range || !utilization) return [];
     const fromDate = formatInputDate(data.utilization.range.from);
     const toDate = formatInputDate(data.utilization.range.to);
     const byDate = new Map(dailyTrend.map((row) => [row.date, row]));
-    const byMonth = new Map<string, { occupiedHours: number; capacityHours: number; sessions: number }>();
-    dateKeys(fromDate, toDate).forEach((date) => {
-      const month = monthFromDate(date);
-      const current = byMonth.get(month) ?? { occupiedHours: 0, capacityHours: 0, sessions: 0 };
+    return dateKeys(fromDate, toDate).map((date) => {
       const row = byDate.get(date);
-      current.occupiedHours += row?.occupiedHours ?? 0;
-      current.capacityHours += utilization.connectorCount * 24;
-      current.sessions += row?.sessions ?? 0;
-      byMonth.set(month, current);
+      const dayIndex = new Date(`${date}T00:00:00Z`).getUTCDay();
+      return { date, dayIndex, dayOfMonth: Number(date.slice(8)), sessions: row?.sessions ?? 0, energyKwh: row?.energyKwh ?? 0, occupiedHours: row?.occupiedHours ?? 0, capacityHours: utilization.connectorCount * 24, utilization: row?.utilization ?? 0 };
     });
-    return [...byMonth.entries()].map(([month, value]) => ({ month, ...value, utilization: value.capacityHours ? (value.occupiedHours / value.capacityHours) * 100 : 0 }));
   }, [data, dailyTrend, utilization]);
+
+  const weekdayPatterns = useMemo(() => {
+    const labels = [{ index: 1, label: "จันทร์" }, { index: 2, label: "อังคาร" }, { index: 3, label: "พุธ" }, { index: 4, label: "พฤหัสบดี" }, { index: 5, label: "ศุกร์" }, { index: 6, label: "เสาร์" }, { index: 0, label: "อาทิตย์" }];
+    return labels.map(({ index, label }) => {
+      const rows = dailyRows.filter((row) => row.dayIndex === index);
+      const capacityHours = rows.reduce((sum, row) => sum + row.capacityHours, 0);
+      const occupiedHours = rows.reduce((sum, row) => sum + row.occupiedHours, 0);
+      return { label, days: rows.length, averageSessions: rows.length ? rows.reduce((sum, row) => sum + row.sessions, 0) / rows.length : 0, averageEnergyKwh: rows.length ? rows.reduce((sum, row) => sum + row.energyKwh, 0) / rows.length : 0, averageUtilization: capacityHours ? (occupiedHours / capacityHours) * 100 : 0 };
+    });
+  }, [dailyRows]);
+
+  const monthPhasePatterns = useMemo(() => {
+    const phases = [{ key: "early", label: "ต้นเดือน", test: (day: number) => day <= 10 }, { key: "middle", label: "กลางเดือน", test: (day: number) => day >= 11 && day <= 20 }, { key: "late", label: "ปลายเดือน", test: (day: number) => day >= 21 }];
+    return phases.map(({ key, label, test }) => {
+      const rows = dailyRows.filter((row) => test(row.dayOfMonth));
+      const capacityHours = rows.reduce((sum, row) => sum + row.capacityHours, 0);
+      const occupiedHours = rows.reduce((sum, row) => sum + row.occupiedHours, 0);
+      return { key, label, days: rows.length, averageSessions: rows.length ? rows.reduce((sum, row) => sum + row.sessions, 0) / rows.length : 0, averageEnergyKwh: rows.length ? rows.reduce((sum, row) => sum + row.energyKwh, 0) / rows.length : 0, averageUtilization: capacityHours ? (occupiedHours / capacityHours) * 100 : 0 };
+    });
+  }, [dailyRows]);
+
+  const highestWeekday = useMemo(() => [...weekdayPatterns].sort((a, b) => b.averageSessions - a.averageSessions)[0], [weekdayPatterns]);
+  const lowestWeekday = useMemo(() => [...weekdayPatterns].sort((a, b) => a.averageSessions - b.averageSessions)[0], [weekdayPatterns]);
+  const highestMonthPhase = useMemo(() => [...monthPhasePatterns].sort((a, b) => b.averageSessions - a.averageSessions)[0], [monthPhasePatterns]);
+  const lowestMonthPhase = useMemo(() => [...monthPhasePatterns].sort((a, b) => a.averageSessions - b.averageSessions)[0], [monthPhasePatterns]);
+  const maxWeekdaySessions = useMemo(() => Math.max(...weekdayPatterns.map((row) => row.averageSessions), 1), [weekdayPatterns]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -171,6 +187,20 @@ export default function StrategyPage() {
           </section>
 
           <section className="panel strategy-monthly-panel"><div className="strategy-section-heading"><div><p className="section-label">MONTHLY GROWTH MIX</p><h2>การเติบโตมาจากลูกค้าใหม่หรือการกลับมาใช้ซ้ำ</h2></div><span className="hint">ใช้เลือกน้ำหนักระหว่าง Acquisition และ Retention</span></div><div className="strategy-monthly-grid">{monthly.map((row) => <article key={row.month}><strong>{formatMonth(row.month)}</strong><div className="strategy-monthly-bar"><i className="new" style={{ width: `${row.meaningfulCustomers ? (row.newCustomers / row.meaningfulCustomers) * 100 : 0}%` }} /><i className="returning" style={{ width: `${row.meaningfulCustomers ? (row.returningCustomers / row.meaningfulCustomers) * 100 : 0}%` }} /></div><div><span className="strategy-mix-new">ใหม่ {formatNumber(row.newCustomers)}</span><span className="strategy-mix-returning">กลับมา {formatNumber(row.returningCustomers)}</span></div><small>Meaningful customers {formatNumber(row.meaningfulCustomers)} · Repeat {formatNumber(row.repeatRate, 1)}% · Regular {formatNumber(row.regularRate, 1)}%</small></article>)}</div></section>
+
+          <section className="content-grid strategy-pattern-grid">
+            <article className="panel">
+              <div className="strategy-section-heading"><div><p className="section-label">WEEKDAY PATTERN</p><h2>ค่าเฉลี่ยการชาร์จ จันทร์–อาทิตย์</h2></div><span className="hint">เฉลี่ยต่อวันในแต่ละวันของสัปดาห์</span></div>
+              <div className="strategy-weekday-list">{weekdayPatterns.map((row) => <div className="strategy-weekday-row" key={row.label}><strong>{row.label}</strong><div className="strategy-weekday-bar"><i style={{ width: `${(row.averageSessions / maxWeekdaySessions) * 100}%` }} /></div><span>{formatNumber(row.averageSessions, 1)} ครั้ง/วัน</span><span>{formatNumber(row.averageEnergyKwh, 1)} kWh/วัน</span><small>{formatNumber(row.averageUtilization, 1)}% · {formatNumber(row.days)} วัน</small></div>)}</div>
+              <p className="chart-footnote">วันสูงสุด: {highestWeekday?.label ?? "-"} ({formatNumber(highestWeekday?.averageSessions ?? 0, 1)} ครั้ง/วัน) · วันต่ำสุด: {lowestWeekday?.label ?? "-"} ({formatNumber(lowestWeekday?.averageSessions ?? 0, 1)} ครั้ง/วัน)</p>
+            </article>
+
+            <article className="panel strategy-phase-panel">
+              <div className="strategy-section-heading"><div><p className="section-label">MONTH PHASE PATTERN</p><h2>ต้นเดือน / กลางเดือน / ปลายเดือน</h2></div><span className="hint">ดูว่าจังหวะเงินเดือนหรือวันเดินทางมีผลหรือไม่</span></div>
+              <div className="strategy-phase-grid">{monthPhasePatterns.map((row) => <div key={row.key}><strong>{row.label}</strong><span>{formatNumber(row.averageSessions, 1)} ครั้ง/วัน</span><small>{formatNumber(row.averageEnergyKwh, 1)} kWh/วัน · Utilization {formatNumber(row.averageUtilization, 1)}%</small><em>{formatNumber(row.days)} วันในตัวอย่าง</em></div>)}</div>
+              <div className="strategy-pattern-insight"><span>สัญญาณเพื่อวางแผน</span><strong>{highestMonthPhase?.label ?? "-"} มีค่าเฉลี่ยสูงสุด</strong><small>ต่ำสุดคือ {lowestMonthPhase?.label ?? "-"} · ควรทดสอบแคมเปญต่างกันตามช่วงเดือนและวัดผลแบบเทียบวันในสัปดาห์</small></div>
+            </article>
+          </section>
 
           <section className="panel strategy-playbook-panel"><p className="section-label">CAMPAIGN PLAYBOOK</p><h2>กรอบแคมเปญที่ผู้บริหารใช้ตัดสินใจได้</h2><div className="strategy-playbook-grid"><div className={utilization.utilization < 10 ? "priority" : ""}><span>Acquisition</span><strong>ดึงลูกค้าใหม่</strong><p>เหมาะเมื่อ utilization ต่ำกว่า 10% ใช้พันธมิตรในพื้นที่, ป้ายทางเข้า, map visibility และ offer สำหรับการชาร์จครั้งแรก</p><small>Success metric: New customer และ First-to-second charge conversion</small></div><div className={utilization.utilization >= 10 && utilization.utilization < TARGET_UTILIZATION ? "priority" : ""}><span>Retention</span><strong>กระตุ้นการกลับมาซ้ำ</strong><p>เหมาะกับสถานีที่เริ่มผ่าน 10% ใช้ reminder ตามรอบ 5 วัน, reward ครั้งที่ 2 และ win-back สำหรับ At risk/Lapsed</p><small>Success metric: Repeat rate, Regular customers และ Lapse rate</small></div><div className={utilization.utilization >= TARGET_UTILIZATION ? "priority" : ""}><span>Monetization</span><strong>เพิ่มรายได้ต่อ capacity</strong><p>เมื่อ utilization แตะ 15% ให้ทดสอบราคา/แพ็กเกจช่วงนอกพีก และพิจารณา capacity เพิ่มเมื่อ demand สม่ำเสมอ</p><small>Success metric: kWh/session, Revenue/connector-hour และ queue risk</small></div></div></section>
 
