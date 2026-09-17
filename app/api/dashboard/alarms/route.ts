@@ -248,6 +248,9 @@ export async function GET(request: Request) {
         deviceCount: cause.devices.size,
         activeIncidents: cause.activeIncidents,
       }));
+    const recoveredIncidents = incidents.filter((incident) => incident.status === "Recovered");
+    const recoveredDurationSeconds = recoveredIncidents.reduce((sum, incident) => sum + incident.durationSeconds, 0);
+    const longestRecoverySeconds = recoveredIncidents.reduce((max, incident) => Math.max(max, incident.durationSeconds), 0);
 
     return Response.json({
       range: { from: from.toISOString(), to: to.toISOString() },
@@ -255,11 +258,16 @@ export async function GET(request: Request) {
         total: items.length,
         incidents: incidents.length,
         recovered: items.filter((item) => item.status.toLowerCase() === "recovered").length,
+        recoveredIncidents: recoveredIncidents.length,
+        recoveryRate: incidents.length > 0 ? round((recoveredIncidents.length / incidents.length) * 100, 1) : 0,
+        averageRecoveryMinutes: recoveredIncidents.length > 0 ? round(recoveredDurationSeconds / 60 / recoveredIncidents.length, 1) : 0,
+        longestRecoveryMinutes: round(longestRecoverySeconds / 60, 1),
         active: items.filter((item) => item.status.toLowerCase() !== "recovered" || !item.endAt).length,
         openIncidents: incidents.filter((incident) => incident.status === "Open").length,
         longerThan5Minutes: items.filter((item) => item.durationSeconds >= 300).length,
         overlappingSessions: items.filter((item) => item.impactedSessionCount > 0).length,
         impactedSessions: new Set(items.flatMap((item) => item.impactedSessionIds)).size,
+        impactedShortSessions: new Set(items.flatMap((item) => item.impactedShortSessionIds)).size,
         incidentDurationMinutes: round(incidents.reduce((sum, incident) => sum + incident.durationSeconds, 0) / 60),
       },
       topCauses,

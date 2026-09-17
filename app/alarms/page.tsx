@@ -27,7 +27,7 @@ type Alarm = {
 type AlarmData = {
   range?: { from: string; to: string };
   message?: string;
-  summary?: { total: number; incidents: number; recovered: number; active: number; openIncidents: number; longerThan5Minutes: number; overlappingSessions: number; impactedSessions: number; incidentDurationMinutes: number };
+  summary?: { total: number; incidents: number; recovered: number; recoveredIncidents: number; recoveryRate: number; averageRecoveryMinutes: number; longestRecoveryMinutes: number; active: number; openIncidents: number; longerThan5Minutes: number; overlappingSessions: number; impactedSessions: number; impactedShortSessions: number; incidentDurationMinutes: number };
   topCauses?: Array<{ code: string; reason: string; incidentCount: number; alarmRecordCount: number; durationSeconds: number; impactedSessions: number; deviceCount: number; activeIncidents: number }>;
   incidents?: Array<{ id: string; code: string; reason: string; chargerName: string; connectorName: string; startAt: string; endAt: string | null; status: string; alarmCount: number; durationSeconds: number; impactedSessionCount: number; impactedShortSessionCount: number }>;
   items?: Alarm[];
@@ -118,18 +118,18 @@ function AlarmsContent() {
         <>
           <p className="loaded-period">{rangeLabel(data.range)}</p>
           <section className="grid alarm-summary-grid">
-            <article className="card"><p className="card-label">Alarm records</p><p className="kpi-value">{formatNumber(data.summary.total)}</p><p className="hint">รายการจากระบบ</p></article>
-            <article className="card"><p className="card-label">Technical incidents</p><p className="kpi-value">{formatNumber(data.summary.incidents)}</p><p className="hint">รวม Alarm ต่อเนื่องเป็นเหตุการณ์เดียว</p></article>
-            <article className="card"><p className="card-label">Session ที่ได้รับผลกระทบ</p><p className="kpi-value">{formatNumber(data.summary.impactedSessions)}</p><p className="hint">นับ session แบบไม่ซ้ำกัน</p></article>
-            <article className="card"><p className="card-label">Open incidents</p><p className="kpi-value">{formatNumber(data.summary.openIncidents)}</p><p className="hint">Alarm records ที่ยังไม่ Recovered {formatNumber(data.summary.active)} รายการ</p></article>
+            <article className="card"><p className="card-label">Alarm records</p><p className="kpi-value">{formatNumber(data.summary.total)}</p><p className="hint">รายการจากระบบ · {formatNumber(data.summary.incidents)} technical incidents</p></article>
+            <article className="card"><p className="card-label">Session ที่ได้รับผลกระทบ</p><p className="kpi-value">{formatNumber(data.summary.impactedSessions)}</p><p className="hint">รวมไม่ซ้ำ · ชาร์จสั้นที่ทับช่วง {formatNumber(data.summary.impactedShortSessions)} รายการ</p></article>
+            <article className="card"><p className="card-label">Incident recovery rate</p><p className="kpi-value">{formatNumber(data.summary.recoveryRate, 1)}<small>%</small></p><p className="hint">Recovered {formatNumber(data.summary.recoveredIncidents)} จาก {formatNumber(data.summary.incidents)} incidents</p></article>
+            <article className="card"><p className="card-label">MTTR โดยประมาณ</p><p className="kpi-value">{formatNumber(data.summary.averageRecoveryMinutes, 1)}<small> นาที</small></p><p className="hint">Open {formatNumber(data.summary.openIncidents)} incidents · สูงสุด {formatNumber(data.summary.longestRecoveryMinutes, 1)} นาที</p></article>
           </section>
 
           <section className="panel incident-summary-panel">
             <div className="decision-heading">
               <div><p className="section-label">INCIDENT VIEW</p><h2>เหตุการณ์ทางเทคนิคหลังรวม Alarm ซ้ำ</h2></div>
-              <span className="period-label">เวลารวมของกลุ่ม Alarm {formatNumber(data.summary.incidentDurationMinutes, 1)} นาที</span>
+              <span className="period-label">เวลารวม {formatNumber(data.summary.incidentDurationMinutes, 1)} นาที · MTTR {formatNumber(data.summary.averageRecoveryMinutes, 1)} นาที</span>
             </div>
-            <p className="hint incident-definition">รวมรหัสและสาเหตุเดียวกันบนหัวเดียวกันที่ห่างไม่เกิน 5 นาทีเป็นกลุ่มเดียว · เวลารวมนี้ยังไม่ใช่ Downtime ของสถานี</p>
+            <p className="hint incident-definition">รวมรหัสและสาเหตุเดียวกันบนหัวเดียวกันที่ห่างไม่เกิน 5 นาทีเป็นกลุ่มเดียว · MTTR คำนวณจาก incidents ที่ Recovered แล้ว · เวลารวมนี้ยังไม่ใช่ Downtime ของสถานี</p>
             <div className="incident-table-wrap">
               <table className="incident-table">
                 <thead><tr><th>เริ่มเกิด</th><th>สาเหตุ</th><th>ตู้ / หัว</th><th>Alarm records</th><th>เวลารวมไม่ซ้อน</th><th>Session กระทบ</th><th>สถานะ</th></tr></thead>
