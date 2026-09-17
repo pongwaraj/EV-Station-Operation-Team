@@ -22,6 +22,14 @@ type UtilizationRow = {
   utilization: number;
   headroom: number;
   overlapDetected: boolean;
+  availability?: {
+    availableHours: number;
+    coverageHours: number;
+    coverage: number;
+    uptime: number | null;
+    utilization: number;
+    headroom: number;
+  } | null;
 };
 
 type UtilizationTrend = UtilizationRow & { date: string };
@@ -139,10 +147,10 @@ export default function UtilizationPage() {
           <p className="loaded-period">ข้อมูลที่แสดง: {data.range ? `${formatDate(data.range.from)} – ${formatDate(data.range.to)}` : "-"}</p>
 
           <section className="grid kpi-grid utilization-kpi-grid">
-            <article className="card"><p className="card-label">Station utilization</p><p className="kpi-value">{formatNumber(data.station.utilization, 1)}<small>%</small></p><p className="hint">เวลาที่หัวชาร์จถูกใช้งานจริงเทียบกับ capacity</p></article>
-            <article className="card"><p className="card-label">Headroom</p><p className="kpi-value">{formatNumber(data.station.headroom, 1)}<small>%</small></p><p className="hint">ความสามารถที่ยังเหลือในช่วงเวลาที่เลือก</p></article>
-            <article className="card"><p className="card-label">Capacity ที่ใช้ไป</p><p className="kpi-value">{formatNumber(data.station.occupiedHours, 1)} <small>/ {formatNumber(data.station.capacityHours, 1)} ชม.</small></p><p className="hint">{formatNumber(data.station.headroomHours, 1)} ชั่วโมงยังเหลือในเชิง capacity</p></article>
-            <article className="card"><p className="card-label">หัวชาร์จในระบบ</p><p className="kpi-value">{formatNumber(data.station.connectorCount)} <small>หัว</small></p><p className="hint">{formatNumber(data.station.chargerCount)} ตู้ · {formatNumber(data.station.sessions)} sessions</p></article>
+            <article className="card"><p className="card-label">Calendar utilization</p><p className="kpi-value">{formatNumber(data.station.utilization, 1)}<small>%</small></p><p className="hint">เทียบกับ capacity ของหัวชาร์จตลอดช่วงเวลาที่เลือก</p></article>
+            <article className="card"><p className="card-label">Available-time utilization</p><p className="kpi-value">{data.station.availability ? <>{formatNumber(data.station.availability.utilization, 1)}<small>%</small></> : "—"}</p><p className="hint">{data.station.availability ? "หักช่วงที่มีสถานะ Offline/Unknown ตาม status event" : "ยังไม่มี status event ที่ใช้คำนวณได้"}</p></article>
+            <article className="card"><p className="card-label">Calendar headroom</p><p className="kpi-value">{formatNumber(data.station.headroom, 1)}<small>%</small></p><p className="hint">ความสามารถที่ยังเหลือในเชิง capacity ไม่ใช่คิวว่างแบบ real-time</p></article>
+            <article className="card"><p className="card-label">Availability evidence</p><p className="kpi-value">{data.station.availability ? <>{formatNumber(data.station.availability.uptime ?? 0, 1)}<small>% uptime</small></> : "—"}</p><p className="hint">{data.station.availability ? `ครอบคลุมสถานะ ${formatNumber(data.station.availability.coverage, 1)}% ของช่วงที่เลือก` : `${formatNumber(data.station.connectorCount)} หัว · ${formatNumber(data.station.sessions)} sessions`}</p></article>
           </section>
 
           <section className="content-grid utilization-overview-grid">
@@ -150,7 +158,7 @@ export default function UtilizationPage() {
               <div className="utilization-section-heading"><div><p className="section-label">STATION OVERVIEW</p><h2>ภาพรวม Meta Mall</h2></div><span className={`utilization-load-badge ${gaugeClass(data.station.utilization)}`}>{data.station.utilization >= 80 ? "ใกล้เต็ม" : data.station.utilization >= 50 ? "ใช้งานปานกลาง" : "ยังมี headroom สูง"}</span></div>
               <div className="utilization-gauge"><div className="utilization-gauge-track"><i className={`utilization-gauge-fill ${gaugeClass(data.station.utilization)}`} style={{ width: `${data.station.utilization}%` }} /></div><div className="utilization-gauge-labels"><strong>{formatNumber(data.station.utilization, 1)}% used</strong><span>{formatNumber(data.station.headroom, 1)}% headroom</span></div></div>
               <div className="utilization-status-summary"><span><i className="status-dot online" />Online <strong>{formatNumber(data.station.statusCounts.online)}</strong></span><span><i className="status-dot offline" />Offline <strong>{formatNumber(data.station.statusCounts.offline)}</strong></span><span><i className="status-dot unknown" />ไม่ระบุ <strong>{formatNumber(data.station.statusCounts.unknown)}</strong></span></div>
-              <p className="chart-footnote">Headroom คำนวณจากเวลาที่หัวชาร์จสามารถให้บริการได้ในช่วงวันที่เลือก ไม่ใช่จำนวนรถที่จอดรอแบบ real-time</p>
+              <p className="chart-footnote">กราฟนี้คือ Calendar utilization จากเวลาที่เลือกทั้งหมด · {data.station.availability ? `Available-time utilization ${formatNumber(data.station.availability.utilization, 1)}% จากสถานะที่สังเกตได้` : "ยังไม่มี status event จึงยังหัก uptime/downtime ไม่ได้"}</p>
             </article>
 
             <article className="panel">
@@ -170,11 +178,11 @@ export default function UtilizationPage() {
           <section className="panel utilization-table-panel">
             <div className="utilization-section-heading"><div><p className="section-label">BY CONNECTOR</p><h2>Utilization รายหัวชาร์จ</h2></div><span className="hint">ใช้หา headroom ที่แท้จริงและหัวที่มี demand สูง</span></div>
             <div className="retention-table-wrap">
-              <table className="retention-table utilization-table"><thead><tr><th>ตู้</th><th>หัวชาร์จ</th><th>สถานะ</th><th>Sessions</th><th>พลังงาน</th><th>Occupied</th><th>Utilization</th><th>Headroom</th></tr></thead><tbody>{(data.connectors ?? []).map((row) => <tr key={row.id}><td><strong>{row.chargerName}</strong></td><td>{row.connectorName}</td><td><span className={statusClass(row.statusGroup)}>{statusLabel(row.statusGroup)}</span></td><td>{formatNumber(row.sessions)}</td><td>{formatNumber(row.energyKwh, 1)} kWh</td><td>{formatNumber(row.occupiedHours, 1)} ชม.</td><td className={`utilization-cell ${gaugeClass(row.utilization)}`}>{formatNumber(row.utilization, 1)}%</td><td>{formatNumber(row.headroom, 1)}%<small>{formatNumber(row.headroomHours, 1)} ชม.</small></td></tr>)}</tbody></table>
+              <table className="retention-table utilization-table"><thead><tr><th>ตู้</th><th>หัวชาร์จ</th><th>สถานะ</th><th>Sessions</th><th>พลังงาน</th><th>Occupied</th><th>Calendar util.</th><th>Available-time util.</th><th>Headroom</th></tr></thead><tbody>{(data.connectors ?? []).map((row) => <tr key={row.id}><td><strong>{row.chargerName}</strong></td><td>{row.connectorName}</td><td><span className={statusClass(row.statusGroup)}>{statusLabel(row.statusGroup)}</span></td><td>{formatNumber(row.sessions)}</td><td>{formatNumber(row.energyKwh, 1)} kWh</td><td>{formatNumber(row.occupiedHours, 1)} ชม.</td><td className={`utilization-cell ${gaugeClass(row.utilization)}`}>{formatNumber(row.utilization, 1)}%</td><td className={`utilization-cell ${row.availability ? gaugeClass(row.availability.utilization) : "unknown"}`}>{row.availability ? <>{formatNumber(row.availability.utilization, 1)}%<small>coverage {formatNumber(row.availability.coverage, 0)}%</small></> : "—"}</td><td>{formatNumber(row.headroom, 1)}%<small>{formatNumber(row.headroomHours, 1)} ชม.</small></td></tr>)}</tbody></table>
             </div>
           </section>
 
-          <section className="panel utilization-method-panel"><p className="section-label">นิยามและข้อจำกัด</p><div className="utilization-method-grid"><div><strong>Utilization</strong><span>{data.definition?.utilization}</span></div><div><strong>Headroom</strong><span>{data.definition?.headroom}</span></div><div><strong>ขอบเขตข้อมูล</strong><span>{data.definition?.limitation}</span></div></div><p className="chart-footnote">{data.definition?.capacity} · ถ้าต้องการ real-time headroom ควรนำเข้า status event หรือข้อมูลสถานะทุกช่วงเวลาเพิ่มเติม</p></section>
+          <section className="panel utilization-method-panel"><p className="section-label">นิยามและข้อจำกัด</p><div className="utilization-method-grid"><div><strong>Calendar utilization</strong><span>{data.definition?.utilization}</span></div><div><strong>Available-time utilization</strong><span>เวลาที่ใช้งานจริง ÷ เวลาที่ status event ระบุว่า Online; ช่วงไม่มีข้อมูลสถานะจะไม่ถูกนับเป็น uptime</span></div><div><strong>ขอบเขตข้อมูล</strong><span>{data.definition?.limitation}</span></div></div><p className="chart-footnote">{data.definition?.capacity} · Headroom ในหน้านี้เป็น capacity ที่ว่างจากข้อมูล session ไม่ใช่จำนวนหัวที่ว่าง ณ ขณะนั้น</p></section>
         </>
       )}
 
