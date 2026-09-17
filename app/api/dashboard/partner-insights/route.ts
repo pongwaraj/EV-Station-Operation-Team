@@ -126,11 +126,12 @@ export async function GET(request: Request) {
     byCustomer.forEach((customerRows, customerId) => {
       const firstReportDate = [...customerRows].sort((a, b) => a.localDate.localeCompare(b.localDate))[0]?.localDate;
       const previousRows = (allCustomerRows.get(customerId) ?? []).filter((row) => row.localDate < fromValue).sort((a, b) => a.localDate.localeCompare(b.localDate));
-      if (!firstReportDate || !previousRows.length) {
+      if (!firstReportDate) return;
+      if (customerRows.length >= 2) crmSegments.returningCustomers += 1;
+      if (!previousRows.length) {
         crmSegments.newCustomers += 1;
         return;
       }
-      crmSegments.returningCustomers = customerRows.length >= 2 ? crmSegments.returningCustomers + 1 : crmSegments.returningCustomers;
       const previousDate = previousRows[previousRows.length - 1].localDate;
       if (daysBetween(previousDate, firstReportDate) >= crmSegments.reactivationGapDays) crmSegments.reactivatedCustomers += 1;
     });
