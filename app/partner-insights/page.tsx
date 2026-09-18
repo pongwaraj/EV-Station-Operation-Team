@@ -84,10 +84,9 @@ export default function PartnerInsightsPage() {
 
       {data?.kpis && !loading && !error && (
         <>
-          <p className="loaded-period">{data.range ? rangeLabel(data.range) : "-"}</p>
           <section className="grid kpi-grid partner-insights-kpi-grid">
             <article className="card"><p className="card-label">จำนวนการใช้บริการ</p><p className="kpi-value">{formatNumber(data.kpis.sessions)}<small> ครั้ง</small></p><p className="hint">เข้าเกณฑ์วิเคราะห์พฤติกรรม {formatNumber(data.kpis.meaningfulSessions)} ครั้ง</p></article>
-            <article className="card"><p className="card-label">ผู้ใช้งานไม่ซ้ำ</p><p className="kpi-value">{formatNumber(data.kpis.uniqueCustomers)}<small> คน</small></p><p className="hint">นับผู้ใช้งานแต่ละรายเพียงครั้งเดียว</p></article>
+            <article className="card"><p className="card-label">ผู้ใช้งานที่เข้าเกณฑ์วิเคราะห์</p><p className="kpi-value">{formatNumber(data.kpis.uniqueCustomers)}<small> คน</small></p><p className="hint">นับผู้ใช้งานแต่ละรายเพียงครั้งเดียว</p></article>
             <article className="card"><p className="card-label">ลูกค้าที่กลับมาใช้ซ้ำ</p><p className="kpi-value">{formatNumber(data.kpis.repeatRate, 1)}<small>%</small></p><p className="hint">{formatNumber(data.kpis.repeatCustomers)} คน จากผู้ใช้ที่ระบุรหัสได้</p></article>
             <article className="card"><p className="card-label">ลูกค้าประจำ</p><p className="kpi-value">{formatNumber(data.kpis.regularCustomers)}<small> คน</small></p><p className="hint">เฉลี่ย {formatNumber(data.kpis.averageSessionsPerCustomer, 1)} ครั้งที่เข้าเกณฑ์/คน</p></article>
           </section>

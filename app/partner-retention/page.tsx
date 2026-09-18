@@ -102,7 +102,7 @@ export default function PartnerRetentionPage() {
         <form className="filter-form" onSubmit={submit}>
           <label>ตั้งแต่<input type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></label>
           <label>ถึง<input type="date" value={to} onChange={(event) => setTo(event.target.value)} /></label>
-          <button type="submit" disabled={loading}>อัปเดต Retention</button>
+          <button type="submit" disabled={loading}>อัปเดตข้อมูล</button>
         </form>
         <p className="hint drilldown-note">ข้อมูลที่แสดง: {data?.range ? `${formatDate(data.range.from)} – ${formatDate(data.range.to)}` : `${from} – ${to}`} · วิเคราะห์จากรายการที่เชื่อมโยงผู้ใช้งานได้</p>
       </section>
