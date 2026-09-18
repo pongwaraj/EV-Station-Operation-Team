@@ -76,7 +76,7 @@ export default function PartnerInsightsPage() {
           <label>ถึง<input type="date" value={to} onChange={(event) => setTo(event.target.value)} /></label>
           <button type="submit" disabled={loading}>อัปเดตพฤติกรรม</button>
         </form>
-        <p className="hint drilldown-note">ข้อมูลที่แสดง: {data?.range ? rangeLabel(data.range) : `${from} – ${to}`}</p>
+        <p className="hint drilldown-note">{data?.range ? rangeLabel(data.range) : `ข้อมูลที่แสดง: ${from} – ${to}`}</p>
       </section>
 
       {loading && <section className="panel loading-state"><p>กำลังสรุปพฤติกรรมลูกค้า…</p></section>}
@@ -84,7 +84,7 @@ export default function PartnerInsightsPage() {
 
       {data?.kpis && !loading && !error && (
         <>
-          <p className="loaded-period">ข้อมูลที่แสดง: {data.range ? rangeLabel(data.range) : "-"}</p>
+          <p className="loaded-period">{data.range ? rangeLabel(data.range) : "-"}</p>
           <section className="grid kpi-grid partner-insights-kpi-grid">
             <article className="card"><p className="card-label">จำนวนการใช้บริการ</p><p className="kpi-value">{formatNumber(data.kpis.sessions)}<small> ครั้ง</small></p><p className="hint">เข้าเกณฑ์วิเคราะห์พฤติกรรม {formatNumber(data.kpis.meaningfulSessions)} ครั้ง</p></article>
             <article className="card"><p className="card-label">ผู้ใช้งานไม่ซ้ำ</p><p className="kpi-value">{formatNumber(data.kpis.uniqueCustomers)}<small> คน</small></p><p className="hint">นับผู้ใช้งานแต่ละรายเพียงครั้งเดียว</p></article>
@@ -92,7 +92,7 @@ export default function PartnerInsightsPage() {
             <article className="card"><p className="card-label">ลูกค้าประจำ</p><p className="kpi-value">{formatNumber(data.kpis.regularCustomers)}<small> คน</small></p><p className="hint">เฉลี่ย {formatNumber(data.kpis.averageSessionsPerCustomer, 1)} ครั้งที่เข้าเกณฑ์/คน</p></article>
           </section>
 
-          <section className="panel partner-crm-panel"><div className="decision-heading"><div><p className="section-label">CRM SEGMENTS</p><h2>กลุ่มลูกค้าสำหรับวางแผนกิจกรรม</h2></div><span className="period-label">แต่ละกลุ่มอาจมีลูกค้าซ้ำกันได้</span></div><div className="partner-crm-grid"><div><span>เริ่มใช้บริการในช่วงที่เลือก</span><strong>{formatNumber(data.crmSegments?.newCustomers ?? 0)} คน</strong><small>ใช้วางกิจกรรมต้อนรับและสร้างการทดลองใช้</small></div><div><span>กลับมาใช้ซ้ำในช่วงที่เลือก</span><strong>{formatNumber(data.crmSegments?.returningCustomers ?? 0)} คน</strong><small>ใช้วางกิจกรรมรักษาความถี่ในการใช้บริการ</small></div><div><span>กลับมาใช้อีกครั้งหลังเว้นช่วง</span><strong>{formatNumber(data.crmSegments?.reactivatedCustomers ?? 0)} คน</strong><small>เว้นจากครั้งก่อนอย่างน้อย {formatNumber(data.crmSegments?.reactivationGapDays ?? 14)} วัน</small></div></div></section>
+          <section className="panel partner-crm-panel"><div className="decision-heading"><div><p className="section-label">CRM SEGMENTS</p><h2>กลุ่มลูกค้าสำหรับวางแผนกิจกรรม</h2></div><span className="period-label">แต่ละกลุ่มอาจมีลูกค้าซ้ำกันได้</span></div><div className="partner-crm-grid"><div><span>พบการใช้บริการครั้งแรกในช่วงที่เลือก</span><strong>{formatNumber(data.crmSegments?.newCustomers ?? 0)} คน</strong><small>ใช้วางกิจกรรมต้อนรับและสร้างการทดลองใช้</small></div><div><span>กลับมาใช้ซ้ำในช่วงที่เลือก</span><strong>{formatNumber(data.crmSegments?.returningCustomers ?? 0)} คน</strong><small>ใช้วางกิจกรรมรักษาความถี่ในการใช้บริการ</small></div><div><span>กลับมาใช้อีกครั้งหลังเว้นช่วง</span><strong>{formatNumber(data.crmSegments?.reactivatedCustomers ?? 0)} คน</strong><small>เว้นจากครั้งก่อนอย่างน้อย {formatNumber(data.crmSegments?.reactivationGapDays ?? 14)} วัน</small></div></div></section>
 
           <section className="panel partner-decision-panel"><p className="section-label">ACTIVITY TIMING</p><h2>จังหวะที่เหมาะกับกิจกรรม</h2><div className="partner-decision-grid"><div><span>วันที่มีการใช้บริการสูง</span><strong>{data.decisionSignals?.topWeekday ?? "-"}</strong><small>เหมาะกับกิจกรรมที่ต้องการจำนวนผู้เข้าร่วม</small></div><div><span>วันที่มีการใช้บริการต่ำ</span><strong>{data.decisionSignals?.lowWeekday ?? "-"}</strong><small>เหมาะกับกิจกรรมกระตุ้นการใช้บริการ</small></div><div><span>ช่วงเวลาหลัก</span><strong>{(data.decisionSignals?.topHours ?? []).map(hourLabel).join(" · ") || "-"}</strong><small>วางกิจกรรมให้สอดคล้องกับพฤติกรรมลูกค้า</small></div><div><span>ช่วงเวลานอกพีก</span><strong>{(data.decisionSignals?.lowHours ?? []).map(hourLabel).join(" · ") || "-"}</strong><small>เหมาะสำหรับทดลองข้อเสนอในช่วงที่ใช้งานน้อย</small></div></div></section>
 

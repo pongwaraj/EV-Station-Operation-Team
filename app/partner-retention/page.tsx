@@ -20,6 +20,7 @@ type MonthlyRetention = {
 type PartnerRetentionData = {
   message?: string;
   range?: { from: string; to: string };
+  observationEndDate?: string;
   kpis?: {
     uniqueCustomers: number;
     meaningfulUniqueCustomers: number;
@@ -111,6 +112,7 @@ export default function PartnerRetentionPage() {
 
       {data?.kpis && !loading && !error && (
         <>
+          {data.observationEndDate && <p className="loaded-period">สถานะลูกค้าประจำประเมินถึง {formatDate(data.observationEndDate)} เพื่อเว้นช่วงติดตามผล 7 วัน</p>}
           <section className="grid retention-kpi-grid partner-retention-kpi-grid">
             <article className="card"><p className="card-label">ผู้ใช้งานไม่ซ้ำ</p><p className="kpi-value">{formatNumber(data.kpis.uniqueCustomers)}<small> คน</small></p><p className="hint">รวมในช่วงเวลาที่เลือก</p></article>
             <article className="card"><p className="card-label">กลับมาใช้ซ้ำในช่วงที่เลือก</p><p className="kpi-value">{formatNumber(data.kpis.periodRepeatRate, 1)}<small>%</small></p><p className="hint">{formatNumber(data.kpis.periodRepeatCustomers)} จาก {formatNumber(data.kpis.meaningfulUniqueCustomers)} คนที่เข้าเกณฑ์วิเคราะห์</p></article>
