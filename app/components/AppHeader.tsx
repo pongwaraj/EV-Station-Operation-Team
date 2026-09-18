@@ -64,7 +64,7 @@ export default function AppHeader() {
           ))}
         </nav>
         <div className="workspace-station"><span className="section-label">พื้นที่ข้อมูล</span><strong>{viewMode === "partner" ? "Meta Mall Station" : "TCE Operations"}</strong><small>{viewMode === "partner" ? "การใช้งานและแนวโน้มลูกค้า" : "การดำเนินงานสถานี"}</small></div>
-        {viewMode === "admin" && <ViewModePicker />}
+        <ViewModePicker />
         <ThemePicker />
         <span className={`system-pill ${health}`}><span className="system-dot" aria-hidden="true" />{health === "ready" ? "ข้อมูลพร้อมใช้งาน" : health === "pending" ? "รอเชื่อมต่อข้อมูล" : "กำลังตรวจสอบ"}</span>
       </div>
