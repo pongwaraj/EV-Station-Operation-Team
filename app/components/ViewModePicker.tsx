@@ -19,7 +19,7 @@ export default function ViewModePicker() {
     if (pathname.startsWith("/partner")) saved = "partner";
     const timer = window.setTimeout(() => setMode(saved), 0);
     try { localStorage.setItem("tce-view-mode", saved); } catch {}
-    if (saved === "partner" && !pathname.startsWith("/partner")) router.replace("/partner-insights");
+    if (saved === "partner" && !pathname.startsWith("/partner")) router.replace("/partner-overview");
     return () => window.clearTimeout(timer);
   }, [pathname, router]);
 
@@ -27,8 +27,8 @@ export default function ViewModePicker() {
     setMode(nextMode);
     try { localStorage.setItem("tce-view-mode", nextMode); } catch {}
     window.dispatchEvent(new CustomEvent("tce-view-change", { detail: nextMode }));
-    router.push(nextMode === "partner" ? "/partner-insights" : "/dashboard");
+    router.push(nextMode === "partner" ? "/partner-overview" : "/dashboard");
   }
 
-  return <label className="view-mode-picker">มุมมอง<select aria-label="มุมมองข้อมูล" value={mode} onChange={(event) => change(event.target.value as ViewMode)}><option value="admin">Admin view</option><option value="partner">Partner view</option></select></label>;
+  return <label className="view-mode-picker">Workspace<select aria-label="พื้นที่ข้อมูล" value={mode} onChange={(event) => change(event.target.value as ViewMode)}><option value="admin">TCE Operations</option><option value="partner">Meta Mall Insights</option></select></label>;
 }

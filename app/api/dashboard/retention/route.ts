@@ -4,7 +4,7 @@ import { getDb } from "../../../../lib/db/client";
 export const runtime = "nodejs";
 
 const DEFAULT_FROM = "2026-07-31";
-const DEFAULT_TO = "2026-09-16";
+const DEFAULT_TO = "2026-09-17";
 const LOOKBACK_DAYS = 60;
 const REGULAR_SESSION_MIN_SECONDS = 300;
 const REGULAR_SESSION_MIN_KWH = 1;
@@ -164,6 +164,13 @@ export async function GET(request: Request) {
     const meaningfulRows = knownRows.filter(isMeaningfulSession);
     const reportRows = knownRows.filter((row) => new Date(row.start_at).getTime() >= from.getTime());
     const reportMeaningfulRows = meaningfulRows.filter((row) => new Date(row.start_at).getTime() >= from.getTime());
+    const periodByCustomer = new Map<string, SessionRow[]>();
+    reportMeaningfulRows.forEach((row) => {
+      const current = periodByCustomer.get(row.customer_id as string) ?? [];
+      current.push(row);
+      periodByCustomer.set(row.customer_id as string, current);
+    });
+    const periodRepeatCustomers = [...periodByCustomer.values()].filter((customerRows) => customerRows.length >= 2).length;
     const months = monthKeys(from, to);
     const firstMeaningfulByCustomer = new Map<string, SessionRow>();
     meaningfulRows.forEach((row) => {
@@ -227,6 +234,9 @@ export async function GET(request: Request) {
         meaningfulSessions: reportMeaningfulRows.length,
         unknownSessions: reportRows.filter((row) => !row.customer_id).length,
         uniqueCustomers: new Set(reportRows.map((row) => row.customer_id).filter(Boolean)).size,
+        meaningfulUniqueCustomers: periodByCustomer.size,
+        periodRepeatCustomers,
+        periodRepeatRate: round(periodByCustomer.size ? (periodRepeatCustomers / periodByCustomer.size) * 100 : 0),
         averageRepeatCustomers: round(average(monthly.map((row) => row.repeatCustomers))),
         averageRepeatRate: round(average(monthly.map((row) => row.repeatRate))),
         averageRegularCustomers: round(average(monthly.map((row) => row.regularCustomers))),

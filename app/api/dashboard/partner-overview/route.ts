@@ -4,7 +4,7 @@ import { getDb } from "../../../../lib/db/client";
 export const runtime = "nodejs";
 
 const DEFAULT_FROM = "2026-05-18";
-const DEFAULT_TO = "2026-09-16";
+const DEFAULT_TO = "2026-09-17";
 
 function bangkokDate(value: string | null, endOfDay = false) {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;

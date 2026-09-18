@@ -4,7 +4,7 @@ import { getDb } from "../../../../lib/db/client";
 export const runtime = "nodejs";
 
 const DEFAULT_FROM = "2026-05-18";
-const DEFAULT_TO = "2026-09-16";
+const DEFAULT_TO = "2026-09-17";
 const LOOKBACK_DAYS = 60;
 const MEANINGFUL_MIN_SECONDS = 300;
 const MEANINGFUL_MIN_KWH = 1;
@@ -124,16 +124,15 @@ export async function GET(request: Request) {
     });
     const crmSegments = { newCustomers: 0, returningCustomers: 0, reactivatedCustomers: 0, reactivationGapDays: 14 };
     byCustomer.forEach((customerRows, customerId) => {
-      const firstReportDate = [...customerRows].sort((a, b) => a.localDate.localeCompare(b.localDate))[0]?.localDate;
+      const sortedReportRows = [...customerRows].sort((a, b) => a.localDate.localeCompare(b.localDate));
+      const firstReportDate = sortedReportRows[0]?.localDate;
       const previousRows = (allCustomerRows.get(customerId) ?? []).filter((row) => row.localDate < fromValue).sort((a, b) => a.localDate.localeCompare(b.localDate));
       if (!firstReportDate) return;
       if (customerRows.length >= 2) crmSegments.returningCustomers += 1;
-      if (!previousRows.length) {
-        crmSegments.newCustomers += 1;
-        return;
-      }
-      const previousDate = previousRows[previousRows.length - 1].localDate;
-      if (daysBetween(previousDate, firstReportDate) >= crmSegments.reactivationGapDays) crmSegments.reactivatedCustomers += 1;
+      if (!previousRows.length) crmSegments.newCustomers += 1;
+      const timeline = previousRows.length ? [previousRows[previousRows.length - 1], ...sortedReportRows] : sortedReportRows;
+      const reactivated = timeline.some((row, index) => index > 0 && row.localDate >= fromValue && daysBetween(timeline[index - 1].localDate, row.localDate) >= crmSegments.reactivationGapDays);
+      if (reactivated) crmSegments.reactivatedCustomers += 1;
     });
     const regularCustomers = new Set([...allCustomerRows.entries()].filter(([, customerRows]) => qualifiesAsRegular(customerRows)).map(([customerId]) => customerId));
     const customerCounts = [...byCustomer.values()].map((customerRows) => customerRows.length);
@@ -169,7 +168,7 @@ export async function GET(request: Request) {
 
     return Response.json({
       range: { from: from.toISOString(), to: to.toISOString() },
-      privacy: { scope: "partner_safe", excluded: ["revenue", "energy", "flat_rate", "customer_id", "vehicle_identity"] },
+      privacy: { scope: "partner_view", excluded: ["customer_id", "vehicle_identity"] },
       kpis: {
         sessions: reportRows.length,
         meaningfulSessions: reportMeaningful.length,
@@ -198,10 +197,10 @@ export async function GET(request: Request) {
         lowWeekday: lowWeekday?.label ?? null,
       },
       methodology: {
-        meaningful: `นับ session ที่มี Duration ≥ ${MEANINGFUL_MIN_SECONDS / 60} นาที และพลังงาน ≥ ${MEANINGFUL_MIN_KWH} kWh เพื่อไม่นับ retry/รายการสั้นเป็นพฤติกรรมหลัก`,
-        repeat: "ลูกค้าที่มี meaningful session ตั้งแต่ 2 ครั้งขึ้นไปในช่วงวันที่เลือก",
-        regular: `ลูกค้าที่มีอย่างน้อย ${REGULAR_MIN_SESSIONS} meaningful sessions ใน rolling 30 วัน และกระจายอย่างน้อย ${REGULAR_MIN_WEEKS} สัปดาห์`,
-        note: "กราฟ weekday/hour/phase ใช้ Order Type ทั้งหมดในช่วงวันที่เลือก ส่วน repeat/regular ใช้ meaningful session เพื่อแยก retry/รายการสั้นออกจากพฤติกรรมการใช้ซ้ำ",
+        meaningful: `รายการที่เข้าเกณฑ์วิเคราะห์มีระยะเวลาชาร์จอย่างน้อย ${MEANINGFUL_MIN_SECONDS / 60} นาที และปริมาณการชาร์จอย่างน้อย ${MEANINGFUL_MIN_KWH} kWh`,
+        repeat: "ผู้ใช้งานซ้ำมีรายการที่เข้าเกณฑ์ตั้งแต่ 2 ครั้งขึ้นไปในช่วงวันที่เลือก",
+        regular: `ผู้ใช้งานประจำมีรายการที่เข้าเกณฑ์อย่างน้อย ${REGULAR_MIN_SESSIONS} ครั้งใน 30 วัน และใช้งานอย่างน้อย ${REGULAR_MIN_WEEKS} สัปดาห์`,
+        note: "กราฟรูปแบบวัน เวลา และช่วงเดือนใช้รายการชาร์จทั้งหมด ส่วนการใช้ซ้ำและลูกค้าประจำใช้รายการที่เข้าเกณฑ์วิเคราะห์",
       },
     });
   } catch (error) {

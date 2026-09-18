@@ -15,9 +15,9 @@ const links = [
   { group: "ลูกค้าและการตลาด", href: "/strategy", label: "กลยุทธ์การเติบโต", icon: "M3 20h18 M5 16l4-5 3 3 6-8 M18 6h3v3" },
   { group: "ลูกค้าและการตลาด", href: "/retention", label: "ลูกค้าประจำ & Retention", icon: "M4 19V5 M4 19h16 M8 15l3-4 3 2 5-7" },
   { group: "ลูกค้าและการตลาด", href: "/customer-value", label: "Customer Value & CRM", icon: "M12 2v20 M17 6.5C16 5.5 14.5 5 12.5 5 10 5 8 6.2 8 8.2c0 2.2 2 3.1 4.8 3.8 2.8.7 4.7 1.6 4.7 3.8 0 2-2 3.2-5 3.2-2.2 0-4-.7-5-2" },
-  { group: "ลูกค้าและการตลาด", href: "/partner-insights", label: "Partner Insights", icon: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M17 11h4 M19 9v4" },
-  { group: "ลูกค้าและการตลาด", href: "/partner-retention", label: "Customer Retention", icon: "M20 11a8 8 0 1 1-2.3-5.7 M20 4v7h-7 M4 13v7h7" },
-  { group: "ลูกค้าและการตลาด", href: "/partner-overview", label: "Partner Overview", icon: "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z" },
+  { group: "ลูกค้าและการตลาด", href: "/partner-overview", label: "ภาพรวมสถานี", icon: "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z" },
+  { group: "ลูกค้าและการตลาด", href: "/partner-insights", label: "พฤติกรรมลูกค้า", icon: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M17 11h4 M19 9v4" },
+  { group: "ลูกค้าและการตลาด", href: "/partner-retention", label: "การกลับมาใช้ซ้ำ", icon: "M20 11a8 8 0 1 1-2.3-5.7 M20 4v7h-7 M4 13v7h7" },
   { group: "สื่อสารกับผู้บริหาร", href: "/snapshot", label: "Snapshot ผู้บริหาร", icon: "M5 3h14v18H5z M8 8h8 M8 12h8 M8 16h5" },
   { group: "จัดการข้อมูล", href: "/imports", label: "นำเข้าข้อมูล", icon: "M12 16V3 M7 8l5-5 5 5 M3 15v6h18v-6" },
 ];
@@ -45,14 +45,14 @@ export default function AppHeader() {
   return (
     <header className="app-header">
       <div className="app-header-inner">
-        <Link className="brand" href={viewMode === "partner" ? "/partner-insights" : "/dashboard"} aria-label="ไปยังภาพรวมสถานี Meta Mall">
+        <Link className="brand" href={viewMode === "partner" ? "/partner-overview" : "/dashboard"} aria-label="ไปยังภาพรวมสถานี Meta Mall">
           <Image className="brand-logo" src="/tce-logo.png" alt="TCE" width={64} height={42} priority />
           <span>
             <span className="brand-name">TCE ChargeX</span>
             <span className="brand-subtitle">Meta Mall</span>
           </span>
         </Link>
-        <div className="nav-caption">{viewMode === "partner" ? "PARTNER WORKSPACE" : "STATION WORKSPACE"}</div>
+        <div className="nav-caption">{viewMode === "partner" ? "META MALL INSIGHTS" : "STATION WORKSPACE"}</div>
         <nav className="main-nav" aria-label="เมนูหลัก">
           {visibleLinks.map((link, index) => (
             <span className="nav-entry" key={link.href}>
@@ -63,8 +63,8 @@ export default function AppHeader() {
             </span>
           ))}
         </nav>
-        <div className="workspace-station"><span className="section-label">มุมมองที่เลือก</span><strong>{viewMode === "partner" ? "Partner view" : "Admin view"}</strong><small>{viewMode === "partner" ? "แสดงเฉพาะจำนวนและพฤติกรรม" : "ข้อมูลภายใน TCE"}</small></div>
-        <ViewModePicker />
+        <div className="workspace-station"><span className="section-label">พื้นที่ข้อมูล</span><strong>{viewMode === "partner" ? "Meta Mall Partnership" : "TCE Operations"}</strong><small>{viewMode === "partner" ? "การใช้งานและแนวโน้มลูกค้า" : "การดำเนินงานสถานี"}</small></div>
+        {viewMode === "admin" && <ViewModePicker />}
         <ThemePicker />
         <span className={`system-pill ${health}`}><span className="system-dot" aria-hidden="true" />{health === "ready" ? "ข้อมูลพร้อมใช้งาน" : health === "pending" ? "รอเชื่อมต่อข้อมูล" : "กำลังตรวจสอบ"}</span>
       </div>

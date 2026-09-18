@@ -3,7 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 const DEFAULT_FROM = "2026-07-31";
-const DEFAULT_TO = "2026-09-16";
+const DEFAULT_TO = "2026-09-17";
 
 type MonthlyRetention = {
   month: string;
@@ -22,6 +22,9 @@ type PartnerRetentionData = {
   range?: { from: string; to: string };
   kpis?: {
     uniqueCustomers: number;
+    meaningfulUniqueCustomers: number;
+    periodRepeatCustomers: number;
+    periodRepeatRate: number;
     averageRepeatCustomers: number;
     averageRepeatRate: number;
     averageRegularCustomers: number;
@@ -87,12 +90,12 @@ export default function PartnerRetentionPage() {
   return (
     <main className="shell retention-shell partner-retention-shell">
       <section className="hero compact-hero">
-        <p className="eyebrow">PARTNER VIEW · CUSTOMER RETENTION</p>
-        <h1>Customer Retention</h1>
-        <p className="lede">ภาพรวมการกลับมาใช้ซ้ำของลูกค้าเพื่อวางแผนกิจกรรม partner แสดงจำนวน อัตรา และแนวโน้มรวมของการใช้บริการ</p>
+        <p className="eyebrow">CUSTOMER RETENTION</p>
+        <h1>การกลับมาใช้บริการ</h1>
+        <p className="lede">ภาพรวมลูกค้าที่กลับมาใช้ซ้ำ ความถี่ในการใช้บริการ และกลุ่มที่เริ่มห่างจากรอบปกติ เพื่อใช้วางแผนกิจกรรมรักษาฐานลูกค้า</p>
       </section>
 
-      <section className="partner-safe-banner"><span className="partner-safe-icon">✓</span><div><strong>Partner-safe view</strong><p>ใช้ดู customer behavior ระดับภาพรวม เหมาะสำหรับวางแผน campaign, CRM และกิจกรรมดึงลูกค้ากลับมา</p></div></section>
+      <section className="partner-safe-banner"><span className="partner-safe-icon">✓</span><div><strong>มุมมองการรักษาฐานลูกค้า</strong><p>ใช้ดูการกลับมาใช้ซ้ำ รอบการใช้บริการ และจังหวะที่เหมาะกับกิจกรรมดึงลูกค้ากลับมา</p></div></section>
 
       <section className="panel retention-filter-panel">
         <form className="filter-form" onSubmit={submit}>
@@ -100,7 +103,7 @@ export default function PartnerRetentionPage() {
           <label>ถึง<input type="date" value={to} onChange={(event) => setTo(event.target.value)} /></label>
           <button type="submit" disabled={loading}>อัปเดต Retention</button>
         </form>
-        <p className="hint drilldown-note">ข้อมูลที่แสดง: {data?.range ? `${formatDate(data.range.from)} – ${formatDate(data.range.to)}` : `${from} – ${to}`}</p>
+        <p className="hint drilldown-note">ข้อมูลที่แสดง: {data?.range ? `${formatDate(data.range.from)} – ${formatDate(data.range.to)}` : `${from} – ${to}`} · วิเคราะห์จากรายการที่เชื่อมโยงผู้ใช้งานได้</p>
       </section>
 
       {loading && <section className="panel loading-state"><p>กำลังวิเคราะห์การกลับมาใช้ซ้ำ…</p></section>}
@@ -110,35 +113,35 @@ export default function PartnerRetentionPage() {
         <>
           <section className="grid retention-kpi-grid partner-retention-kpi-grid">
             <article className="card"><p className="card-label">ผู้ใช้งานไม่ซ้ำ</p><p className="kpi-value">{formatNumber(data.kpis.uniqueCustomers)}<small> คน</small></p><p className="hint">รวมในช่วงเวลาที่เลือก</p></article>
-            <article className="card"><p className="card-label">กลับมาใช้ซ้ำเฉลี่ย</p><p className="kpi-value">{formatNumber(data.kpis.averageRepeatRate, 1)}<small>%</small></p><p className="hint">อัตราเฉลี่ยรายเดือน</p></article>
+            <article className="card"><p className="card-label">กลับมาใช้ซ้ำในช่วงที่เลือก</p><p className="kpi-value">{formatNumber(data.kpis.periodRepeatRate, 1)}<small>%</small></p><p className="hint">{formatNumber(data.kpis.periodRepeatCustomers)} จาก {formatNumber(data.kpis.meaningfulUniqueCustomers)} คนที่เข้าเกณฑ์วิเคราะห์</p></article>
             <article className="card"><p className="card-label">ลูกค้าประจำเฉลี่ย</p><p className="kpi-value">{formatNumber(data.kpis.averageRegularCustomers, 1)}<small> คน/เดือน</small></p><p className="hint">อย่างน้อย 3 ครั้งใน 30 วัน และกระจาย 2 สัปดาห์</p></article>
             <article className="card"><p className="card-label">รอบกลับมาใช้โดยทั่วไป</p><p className="kpi-value">{formatNumber(data.kpis.medianExpectedGapDays, 1)}<small> วัน</small></p><p className="hint">ค่ามัธยฐานของกลุ่มลูกค้าประจำ</p></article>
           </section>
 
-          <section className="panel partner-decision-panel partner-retention-readout"><p className="section-label">RETENTION READOUT</p><h2>กลุ่มที่ควรใช้วางแผน CRM</h2><div className="partner-decision-grid"><div><span>ยัง Active</span><strong>{formatNumber(data.kpis.activeRegularCustomers)} คน</strong><small>ยังอยู่ในรอบการกลับมาใช้ของตนเอง</small></div><div><span>At risk</span><strong>{formatNumber(data.kpis.atRiskRegularCustomers)} คน</strong><small>เริ่มเกินรอบปกติ ควรติดตาม</small></div><div><span>Lapsed regular</span><strong>{formatNumber(data.kpis.lapsedRegularCustomers)} คน</strong><small>เหมาะกับแคมเปญ win-back</small></div><div><span>Regular lapse rate</span><strong>{formatNumber(data.kpis.regularLapseRate, 1)}%</strong><small>สัดส่วนลูกค้าประจำที่หลุดจากรอบ</small></div></div></section>
+          <section className="panel partner-decision-panel partner-retention-readout"><p className="section-label">RETENTION STATUS</p><h2>สถานะการกลับมาใช้ของลูกค้าประจำ</h2><div className="partner-decision-grid"><div><span>ยังใช้งานตามรอบ</span><strong>{formatNumber(data.kpis.activeRegularCustomers)} คน</strong><small>ยังอยู่ในรอบการกลับมาใช้ตามปกติ</small></div><div><span>เริ่มห่างจากรอบปกติ</span><strong>{formatNumber(data.kpis.atRiskRegularCustomers)} คน</strong><small>เหมาะกับการสื่อสารเพื่อรักษาความต่อเนื่อง</small></div><div><span>ขาดช่วงจากการใช้บริการ</span><strong>{formatNumber(data.kpis.lapsedRegularCustomers)} คน</strong><small>เหมาะกับกิจกรรมเชิญกลับมาใช้บริการ</small></div><div><span>สัดส่วนลูกค้าประจำที่ขาดช่วง</span><strong>{formatNumber(data.kpis.regularLapseRate, 1)}%</strong><small>เทียบกับลูกค้าประจำทั้งหมดที่ติดตามได้</small></div></div></section>
 
           <section className="content-grid retention-main-grid">
             <article className="panel">
               <div className="retention-panel-heading"><div><p className="section-label">MONTHLY RETENTION</p><h2>ลูกค้าประจำและอัตราการกลับมาใช้ซ้ำ</h2></div><span className="period-label">แนวโน้มรายเดือน</span></div>
               <div className="partner-retention-chart" role="img" aria-label="กราฟจำนวนลูกค้าประจำและอัตราการกลับมาใช้ซ้ำรายเดือน">
-                {(data.monthly ?? []).map((row) => <div className="partner-retention-month" key={row.month} title={`${formatMonth(row.month)} · ลูกค้าประจำ ${formatNumber(row.regularCustomers)} คน · Repeat rate ${formatNumber(row.repeatRate, 1)}%`}><strong>{formatNumber(row.repeatRate, 1)}%</strong><i style={{ height: `${Math.max(5, row.regularCustomers / chartMax * 100)}%` }} /><span>{formatMonth(row.month)}</span><small>{formatNumber(row.regularCustomers)} regular</small></div>)}
+                {(data.monthly ?? []).map((row) => <div className="partner-retention-month" key={row.month} title={`${formatMonth(row.month)} · ลูกค้าประจำ ${formatNumber(row.regularCustomers)} คน · อัตราใช้ซ้ำ ${formatNumber(row.repeatRate, 1)}%`}><strong>{formatNumber(row.repeatRate, 1)}%</strong><i style={{ height: `${Math.max(5, row.regularCustomers / chartMax * 100)}%` }} /><span>{formatMonth(row.month)}</span><small>{formatNumber(row.regularCustomers)} ลูกค้าประจำ</small></div>)}
               </div>
-              <p className="chart-footnote">Repeat rate = ลูกค้าที่มี meaningful session ตั้งแต่ 2 ครั้งขึ้นไปในเดือนเดียวกัน · ผู้ใช้ครั้งเดียวไม่ถูกตีความเป็น churn</p>
+              <p className="chart-footnote">อัตราใช้ซ้ำ = ผู้ใช้งานที่มีรายการเข้าเกณฑ์อย่างน้อย 2 ครั้งในเดือนเดียวกัน · ไม่นับผู้ใช้ครั้งเดียวว่าเป็นลูกค้าที่หายไป · เดือน ก.ค. และ ก.ย. เป็นข้อมูลบางส่วน</p>
             </article>
 
             <article className="panel">
               <div className="retention-panel-heading"><div><p className="section-label">CUSTOMER CADENCE</p><h2>รอบการกลับมาใช้</h2></div><span className="period-label">จำนวนลูกค้า</span></div>
               <div className="partner-retention-cadence">{(data.cadenceBuckets ?? []).map((bucket) => <div key={bucket.label}><span>{bucket.label}</span><div className="partner-track"><i style={{ width: `${bucket.count / cadenceMax * 100}%` }} /></div><strong>{formatNumber(bucket.count)}</strong></div>)}</div>
-              <p className="chart-footnote">ใช้กำหนดจังหวะ reminder และข้อเสนอสำหรับกลุ่มที่เริ่มห่างจากรอบปกติ</p>
+              <p className="chart-footnote">ใช้กำหนดจังหวะการสื่อสารและข้อเสนอสำหรับกลุ่มที่เริ่มห่างจากรอบปกติ</p>
             </article>
           </section>
 
           <section className="panel retention-table-panel">
-            <div className="retention-panel-heading"><div><p className="section-label">MONTHLY DETAIL</p><h2>รายละเอียดแนวโน้มการกลับมาใช้ซ้ำ</h2></div><span className="period-label">ตัวเลขรวมเท่านั้น</span></div>
-            <div className="retention-table-wrap"><table className="retention-table partner-retention-table"><thead><tr><th>เดือน</th><th>ลูกค้าที่ใช้งาน</th><th>ลูกค้าใหม่</th><th>กลับมาใช้ซ้ำ</th><th>Repeat rate</th><th>ลูกค้าประจำ</th><th>Regular rate</th></tr></thead><tbody>{(data.monthly ?? []).map((row) => <tr key={row.month}><td><strong>{formatMonth(row.month)}</strong></td><td>{formatNumber(row.uniqueCustomers)}</td><td>{formatNumber(row.newCustomers)}</td><td className="retention-positive">{formatNumber(row.repeatCustomers)}</td><td>{formatNumber(row.repeatRate, 1)}%</td><td className="retention-positive">{formatNumber(row.regularCustomers)}</td><td>{formatNumber(row.regularRate, 1)}%</td></tr>)}</tbody></table></div>
+            <div className="retention-panel-heading"><div><p className="section-label">MONTHLY DETAIL</p><h2>รายละเอียดแนวโน้มการกลับมาใช้ซ้ำ</h2></div><span className="period-label">สรุปรายเดือน</span></div>
+            <div className="retention-table-wrap"><table className="retention-table partner-retention-table"><thead><tr><th>เดือน</th><th>ผู้ใช้งาน</th><th>เริ่มใช้ในเดือน</th><th>กลับมาใช้ซ้ำ</th><th>อัตราใช้ซ้ำ</th><th>ลูกค้าประจำ</th><th>สัดส่วนลูกค้าประจำ</th></tr></thead><tbody>{(data.monthly ?? []).map((row) => <tr key={row.month}><td><strong>{formatMonth(row.month)}</strong></td><td>{formatNumber(row.uniqueCustomers)}</td><td>{formatNumber(row.newCustomers)}</td><td className="retention-positive">{formatNumber(row.repeatCustomers)}</td><td>{formatNumber(row.repeatRate, 1)}%</td><td className="retention-positive">{formatNumber(row.regularCustomers)}</td><td>{formatNumber(row.regularRate, 1)}%</td></tr>)}</tbody></table></div>
           </section>
 
-          <section className="panel partner-method-panel"><p className="section-label">นิยามสำหรับ partner</p><p>Meaningful session ใช้สำหรับแยกรายการสั้น/Retry ออกจากพฤติกรรมการกลับมาใช้ซ้ำ · ลูกค้าประจำต้องมีอย่างน้อย 3 ครั้งใน rolling 30 วัน และกระจายอย่างน้อย 2 สัปดาห์</p><p className="chart-footnote">การเปลี่ยนแพลตฟอร์ม One Charge เป็น PEA Volta ไม่ถูกใช้เป็นเงื่อนไขตัดข้อมูล</p></section>
+          <section className="panel partner-method-panel"><p className="section-label">หลักเกณฑ์การวิเคราะห์</p><p>รายการที่เข้าเกณฑ์มีระยะเวลาชาร์จอย่างน้อย 5 นาที และปริมาณการชาร์จอย่างน้อย 1 kWh · ลูกค้าประจำต้องมีรายการที่เข้าเกณฑ์อย่างน้อย 3 ครั้งใน 30 วัน และใช้งานอย่างน้อย 2 สัปดาห์</p><p className="chart-footnote">การแบ่งสถานะอ้างอิงรอบการกลับมาใช้จริงของแต่ละคน และใช้เพื่อมองแนวโน้มในภาพรวม</p></section>
         </>
       )}
     </main>
